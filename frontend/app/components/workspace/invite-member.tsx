@@ -35,7 +35,7 @@ export const InviteMemberDialog = ({
     resolver: zodResolver(inviteMemberSchema),
     defaultValues: {
       email: "",
-      role: "member",
+      //role: "member",
     },
   });
 
@@ -47,7 +47,8 @@ export const InviteMemberDialog = ({
     mutate(
       {
         workspaceId,
-        ...data,
+        email: data.email,
+        role: "member",
       },
       {
         onSuccess: () => {
@@ -115,7 +116,7 @@ export const InviteMemberDialog = ({
                         )}
                       />
 
-                      <FormField
+                      {/* <FormField
                         control={form.control}
                         name="role"
                         render={({ field }) => (
@@ -153,7 +154,7 @@ export const InviteMemberDialog = ({
                             </FormControl>
                           </FormItem>
                         )}
-                      />
+                      /> */}
                     </div>
 
                     <Button

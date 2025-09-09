@@ -6,45 +6,52 @@ import { sendEmail } from "../libs/send-email.js";
 import { recordActivity } from "../libs/index.js";
 import jwt from "jsonwebtoken";
 const createWorkspace = async (req, res) => {
-    try {
-        const { name, description, color } = req.body;
-        const workspace = await Workspace.create({
-            name,
-            description,
-            color,
-            owner: req.user._id,
-            members: [
-                {
-                    user: req.user._id,
-                    role: "owner",
-                    joinedAt: new Date(),
-                }
-            ]
-        });
+  try {
+    const { name, description, color } = req.body;
+    const workspace = await Workspace.create({
+      name,
+      description,
+      color,
+      owner: req.user._id,
+      members: [
+        {
+          user: req.user._id,
+          role: "owner",
+          joinedAt: new Date(),
+        },
+      ],
+    });
 
-        res.status(201).json(workspace);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500)({
-            message: "Internal Server Error"
-        })
-    }
+    res.status(201).json(workspace);
+  } catch (error) {
+    console.error(error);
+    res.status(500)({
+      message: "Internal Server Error",
+    });
+  }
 };
 
+// const getWorkspaces = async (req, res) => {
+//     try {
+//         const workspaces = await Workspace.find({
+//             "members.user": req.user._id,
+//         }).sort({ createdAt: -1 });
+//         res.status(200).json(workspaces)
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500)({
+//             message: "Internal Server Error"
+//         })
+//     }
+// }
 const getWorkspaces = async (req, res) => {
-    try {
-        const workspaces = await Workspace.find({
-            "members.user": req.user._id,
-        }).sort({ createdAt: -1 });
-        res.status(200).json(workspaces)
-    } catch (error) {
-        console.log(error);
-        res.status(500)({
-            message: "Internal Server Error"
-        })
-    }
-}
+  try {
+    const workspaces = await Workspace.find({ owner: req.user._id });
+    res.json(workspaces);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch workspaces" });
+  }
+};
 
 const getWorkspaceDetails = async (req, res) => {
   try {
@@ -63,8 +70,6 @@ const getWorkspaceDetails = async (req, res) => {
     res.status(200).json(workspace);
   } catch (error) {}
 };
-
-
 
 const getWorkspaceProjects = async (req, res) => {
   try {
@@ -109,7 +114,9 @@ const updateWorkspace = async (req, res) => {
     );
 
     if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found or not authorized" });
+      return res
+        .status(404)
+        .json({ message: "Workspace not found or not authorized" });
     }
 
     res.status(200).json(workspace);
@@ -129,7 +136,9 @@ const deleteWorkspace = async (req, res) => {
     });
 
     if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found or not authorized" });
+      return res
+        .status(404)
+        .json({ message: "Workspace not found or not authorized" });
     }
 
     // Optional: delete associated projects or clean up
@@ -164,29 +173,48 @@ const getWorkspaceStats = async (req, res) => {
     );
 
     if (!isMember) {
-      return res.status(403).json({ message: "You are not a member of this workspace" });
+      return res
+        .status(403)
+        .json({ message: "You are not a member of this workspace" });
     }
 
     const [totalProjects, projects] = await Promise.all([
       Project.countDocuments({ workspace: workspaceId }),
       Project.find({ workspace: workspaceId })
-        .populate("tasks", "title status dueDate project updatedAt isArchived priority")
+        .populate(
+          "tasks",
+          "title status dueDate project updatedAt isArchived priority"
+        )
         .sort({ createdAt: -1 }),
     ]);
 
-    const totalTasks = projects.reduce((acc, project) => acc + project.tasks.length, 0);
+    const totalTasks = projects.reduce(
+      (acc, project) => acc + project.tasks.length,
+      0
+    );
     const tasks = projects.flatMap((project) => project.tasks);
 
-    const totalTaskCompleted = tasks.filter((task) => task.status === "Done").length;
-    const totalTaskToDo = tasks.filter((task) => task.status === "To Do").length;
-    const totalTaskInProgress = tasks.filter((task) => task.status === "In Progress").length;
+    const totalTaskCompleted = tasks.filter(
+      (task) => task.status === "Done"
+    ).length;
+    const totalTaskToDo = tasks.filter(
+      (task) => task.status === "To Do"
+    ).length;
+    const totalTaskInProgress = tasks.filter(
+      (task) => task.status === "In Progress"
+    ).length;
 
-    const totalProjectInReview = projects.filter((p) => p.status === "Under Review").length;
+    const totalProjectInReview = projects.filter(
+      (p) => p.status === "Under Review"
+    ).length;
 
     const upcomingTasks = tasks.filter((task) => {
       const taskDate = new Date(task.dueDate);
       const today = new Date();
-      return taskDate > today && taskDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return (
+        taskDate > today &&
+        taskDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+      );
     });
 
     const taskTrendsData = [
@@ -215,7 +243,9 @@ const getWorkspaceStats = async (req, res) => {
       );
 
       if (dayIndex !== -1) {
-        const dayName = last7Days[dayIndex].toLocaleDateString("en-US", { weekday: "short" });
+        const dayName = last7Days[dayIndex].toLocaleDateString("en-US", {
+          weekday: "short",
+        });
         const dayData = taskTrendsData.find((day) => day.name === dayName);
         if (dayData) {
           switch (task.status) {
@@ -263,7 +293,9 @@ const getWorkspaceStats = async (req, res) => {
       const projectTasks = tasks.filter(
         (task) => task.project.toString() === project._id.toString()
       );
-      const completed = projectTasks.filter((t) => t.status === "Done" && !t.isArchived).length;
+      const completed = projectTasks.filter(
+        (t) => t.status === "Done" && !t.isArchived
+      ).length;
       return {
         name: project.title,
         completed,
@@ -297,7 +329,7 @@ const getWorkspaceStats = async (req, res) => {
 const inviteUserToWorkspace = async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const { email, role } = req.body;
+    const { email } = req.body; // ❌ removed role, we don’t need it anymore
 
     const workspace = await Workspace.findById(workspaceId);
 
@@ -307,11 +339,8 @@ const inviteUserToWorkspace = async (req, res) => {
       });
     }
 
-    const userMemberInfo = workspace.members.find(
-      (member) => member.user.toString() === req.user._id.toString()
-    );
-
-    if (!userMemberInfo || !["admin", "owner"].includes(userMemberInfo.role)) {
+    // ✅ Only owner can invite
+    if (workspace.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         message: "You are not authorized to invite members to this workspace",
       });
@@ -350,11 +379,12 @@ const inviteUserToWorkspace = async (req, res) => {
       await WorkspaceInvite.deleteOne({ _id: isInvited._id });
     }
 
+    // ✅ Force role to "member"
     const inviteToken = jwt.sign(
       {
         user: existingUser._id,
         workspaceId: workspaceId,
-        role: role || "member",
+        role: "member",
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
@@ -364,7 +394,7 @@ const inviteUserToWorkspace = async (req, res) => {
       user: existingUser._id,
       workspaceId: workspaceId,
       token: inviteToken,
-      role: role || "member",
+      role: "member", // ✅ always member
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
@@ -512,4 +542,15 @@ const acceptInviteByToken = async (req, res) => {
   }
 };
 
-export { createWorkspace, getWorkspaces, getWorkspaceDetails, getWorkspaceProjects,updateWorkspace,deleteWorkspace,getWorkspaceStats, inviteUserToWorkspace, acceptInviteByToken, acceptGenerateInvite };
+export {
+  createWorkspace,
+  getWorkspaces,
+  getWorkspaceDetails,
+  getWorkspaceProjects,
+  updateWorkspace,
+  deleteWorkspace,
+  getWorkspaceStats,
+  inviteUserToWorkspace,
+  acceptInviteByToken,
+  acceptGenerateInvite,
+};

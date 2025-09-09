@@ -16,11 +16,7 @@ const workspaceInviteSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    role: {
-      type: String,
-      enum: ["admin", "member", "viewer"],
-      default: "member",
-    },
+    role: { type: String, enum: ["member"], default: "member" },
     expiresAt: {
       type: Date,
       required: true,

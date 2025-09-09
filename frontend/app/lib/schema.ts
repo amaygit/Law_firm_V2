@@ -65,5 +65,5 @@ export const createTaskSchema = z.object({
 });
 export const inviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["admin", "member", "viewer"]),
+  // role: z.enum(["admin", "member", "viewer"]),
 });
