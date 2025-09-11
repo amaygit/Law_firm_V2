@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { BackButton } from "@/components/back-button";
 import { Loader } from "@/components/loader";
 import { CommentSection } from "@/components/task/comment-section";
@@ -38,7 +39,8 @@ function getS3Url(key: string) {
 const FileUploadButton: React.FC<{
   taskId: string;
   onUploadSuccess: () => void;
-}> = ({ taskId, onUploadSuccess }) => {
+  disabled?: boolean;
+}> = ({ taskId, onUploadSuccess, disabled }) => {
   const [uploading, setUploading] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -51,7 +53,6 @@ const FileUploadButton: React.FC<{
     setUploading(true);
 
     try {
-      // Call your backend to get signed URL
       const response = await axios.post(
         "https://6g14bisq5c.execute-api.eu-north-1.amazonaws.com//upload",
         {
@@ -60,9 +61,9 @@ const FileUploadButton: React.FC<{
           fileType: file.type,
         }
       );
-      const { uploadURL, fileKey } = response.data;
 
-      // Upload file to S3 using presigned URL
+      const { uploadURL } = response.data;
+
       await axios.put(uploadURL, file, {
         headers: {
           "Content-Type": file.type,
@@ -87,13 +88,13 @@ const FileUploadButton: React.FC<{
         style={{ display: "none" }}
         onChange={handleFileChange}
         accept="image/*"
-        disabled={uploading}
+        disabled={uploading || disabled}
       />
       <Button
         variant="outline"
         size="sm"
         onClick={() => inputRef.current?.click()}
-        disabled={uploading}
+        disabled={uploading || disabled}
         className="w-fit"
       >
         {uploading ? "Uploading..." : "Upload"}
@@ -160,20 +161,18 @@ const TaskFiles: React.FC<{ taskId: string }> = ({ taskId }) => {
 
 const TaskDetails = () => {
   const { user } = useAuth();
-  const { taskId, projectId, workspaceId } = useParams<{
-    taskId: string;
-    projectId: string;
-    workspaceId: string;
-  }>();
+  const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
 
   const { data, isLoading } = useTaskByIdQuery(taskId!) as {
     data: {
       task: Task;
       project: Project;
+      role: "owner" | "subLawyer" | "client" | null;
     };
     isLoading: boolean;
   };
+
   const { mutate: watchTask, isPending: isWatching } = useWatchTaskMutation();
   const { mutate: achievedTask, isPending: isAchieved } =
     useAchievedTaskMutation();
@@ -197,7 +196,9 @@ const TaskDetails = () => {
     );
   }
 
-  const { task, project } = data;
+  const { task, project, role } = data;
+  const isClient = role === "client";
+
   const isUserWatching = task?.watchers?.some(
     (watcher) => watcher._id.toString() === user?._id.toString()
   );
@@ -208,12 +209,8 @@ const TaskDetails = () => {
     watchTask(
       { taskId: task._id },
       {
-        onSuccess: () => {
-          toast.success("Task watched");
-        },
-        onError: () => {
-          toast.error("Failed to watch task");
-        },
+        onSuccess: () => toast.success("Task watched"),
+        onError: () => toast.error("Failed to watch task"),
       }
     );
   };
@@ -222,12 +219,8 @@ const TaskDetails = () => {
     achievedTask(
       { taskId: task._id },
       {
-        onSuccess: () => {
-          toast.success("Case achieved");
-        },
-        onError: () => {
-          toast.error("Failed to achieve case");
-        },
+        onSuccess: () => toast.success("Case achieved"),
+        onError: () => toast.error("Failed to achieve case"),
       }
     );
   };
@@ -247,47 +240,56 @@ const TaskDetails = () => {
           )}
         </div>
 
-        <div className="flex space-x-2 mt-4 md:mt-0">
-          <Button
-            variant={"outline"}
-            size="sm"
-            onClick={handleWatchTask}
-            className="w-fit"
-            disabled={isWatching}
-          >
-            {isUserWatching ? (
-              <>
-                <EyeOff className="mr-2 size-4" />
-                Unwatch
-              </>
-            ) : (
-              <>
-                <Eye className="mr-2 size-4" />
-                Watch
-              </>
+        {/* ❌ Clients should not see action buttons */}
+        {!isClient && (
+          <div className="flex space-x-2 mt-4 md:mt-0">
+            <Button
+              variant={"outline"}
+              size="sm"
+              onClick={handleWatchTask}
+              className="w-fit"
+              disabled={isWatching}
+            >
+              {isUserWatching ? (
+                <>
+                  <EyeOff className="mr-2 size-4" />
+                  Unwatch
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 size-4" />
+                  Watch
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant={"outline"}
+              size="sm"
+              onClick={handleAchievedTask}
+              className="w-fit"
+              disabled={isAchieved}
+            >
+              {task.isArchived ? "Unarchive" : "Archive"}
+            </Button>
+
+            {task._id && (
+              <FileUploadButton
+                taskId={task._id}
+                onUploadSuccess={triggerFilesRefresh}
+                disabled={isClient}
+              />
             )}
-          </Button>
-
-          <Button
-            variant={"outline"}
-            size="sm"
-            onClick={handleAchievedTask}
-            className="w-fit"
-            disabled={isAchieved}
-          >
-            {task.isArchived ? "Unarchive" : "Archive"}
-          </Button>
-
-          {task._id && (
-            <FileUploadButton
-              taskId={task._id}
-              onUploadSuccess={triggerFilesRefresh}
-            />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <TaskCourtName taskId={task._id} courtName={task.courtName} />
+      <TaskCourtName
+        taskId={task._id}
+        courtName={task.courtName}
+        // pass isClient if you want to disable editing there too
+        isClient={isClient}
+      />
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:col-span-2">
@@ -307,7 +309,11 @@ const TaskDetails = () => {
                   {task.priority} Priority
                 </Badge>
 
-                <TaskTitle title={task.title} taskId={task._id} />
+                <TaskTitle
+                  title={task.title}
+                  taskId={task._id}
+                  isClient={isClient} // ✅ only clients see read-only title
+                />
 
                 <div className="text-sm md:text-base text-muted-foreground">
                   Created at:{" "}
@@ -317,18 +323,19 @@ const TaskDetails = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-4 md:mt-0">
-                <TaskStatusSelector status={task.status} taskId={task._id} />
-
-                <Button
-                  variant={"destructive"}
-                  size="sm"
-                  onClick={() => {}}
-                  className="hidden md:block"
-                >
-                  Delete Case NKM
-                </Button>
-              </div>
+              {!isClient && (
+                <div className="flex items-center gap-2 mt-4 md:mt-0">
+                  <TaskStatusSelector status={task.status} taskId={task._id} />
+                  <Button
+                    variant={"destructive"}
+                    size="sm"
+                    onClick={() => {}}
+                    className="hidden md:block"
+                  >
+                    Delete Case
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="mb-6">
@@ -339,14 +346,19 @@ const TaskDetails = () => {
               <TaskDescription
                 description={task.description || ""}
                 taskId={task._id}
+                isClient={isClient}
               />
             </div>
 
+            {/* {!isClient && (
+              <> */}
             <TaskAssigneesSelector
               task={task}
               assignees={task.assignees}
               projectMembers={project.members as any}
+              isClient={isClient}
             />
+
             <TaskClientsSelector
               task={task}
               clients={task.clients}
@@ -356,6 +368,8 @@ const TaskDetails = () => {
             <TaskPrioritySelector priority={task.priority} taskId={task._id} />
 
             <SubTasksDetails subTasks={task.subtasks || []} taskId={task._id} />
+            {/* </>
+            )} */}
           </div>
 
           <CommentSection taskId={task._id} members={project.members as any} />
@@ -364,10 +378,7 @@ const TaskDetails = () => {
         {/* right side */}
         <div className="w-full">
           <Watchers watchers={task.watchers || []} />
-
           <TaskActivity resourceId={task._id} />
-
-          {/* Display uploaded files below task activity */}
           <TaskFiles taskId={task._id} key={filesRefreshKey} />
         </div>
       </div>

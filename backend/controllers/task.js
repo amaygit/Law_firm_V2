@@ -79,9 +79,7 @@ const getTaskById = async (req, res) => {
       .populate("watchers", "name profilePicture");
 
     if (!task) {
-      return res.status(404).json({
-        message: "Case not found",
-      });
+      return res.status(404).json({ message: "Case not found" });
     }
 
     const project = await Project.findById(task.project).populate(
@@ -89,12 +87,32 @@ const getTaskById = async (req, res) => {
       "name profilePicture"
     );
 
-    res.status(200).json({ task, project });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "Internal server error",
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // ✅ Figure out role
+    let role = null;
+    if (
+      task.clients.some((c) => c._id.toString() === req.user._id.toString())
+    ) {
+      role = "client";
+    } else if (
+      task.assignees.some((a) => a._id.toString() === req.user._id.toString())
+    ) {
+      role = "subLawyer";
+    } else if (project.owner.toString() === req.user._id.toString()) {
+      role = "owner";
+    }
+
+    res.status(200).json({
+      task,
+      project,
+      role, // ✅ send role
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -665,8 +683,16 @@ const achievedTask = async (req, res) => {
 
 const getMyTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ assignees: { $in: [req.user._id] } })
+    const tasks = await Task.find({
+      $or: [
+        { assignees: req.user._id },
+        { clients: req.user._id },
+        { watchers: req.user._id }, // optional, only if you want watchers to see tasks too
+      ],
+    })
       .populate("project", "title workspace")
+      .populate("assignees", "name profilePicture")
+      .populate("clients", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.status(200).json(tasks);

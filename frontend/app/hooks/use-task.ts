@@ -18,7 +18,11 @@ export const useCreateTaskMutation = () => {
 };
 
 export const useTaskByIdQuery = (taskId: string) => {
-  return useQuery({
+  return useQuery<{
+    task: Task;
+    project: any;
+    role: "owner" | "subLawyer" | "client" | null;
+  }>({
     queryKey: ["task", taskId],
     queryFn: () => fetchData(`/tasks/${taskId}`),
   });

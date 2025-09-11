@@ -7,11 +7,13 @@ import { useUpdateTaskCourtNameMutation } from "@/hooks/use-task";
 interface TaskCourtNameProps {
   taskId: string;
   courtName?: string;
+  isClient?: boolean;
 }
 
 export const TaskCourtName: React.FC<TaskCourtNameProps> = ({
   taskId,
   courtName: initialCourtName = "",
+  isClient = false,
 }) => {
   const { mutate: updateCourtName } = useUpdateTaskCourtNameMutation();
   const [editing, setEditing] = useState(false);
@@ -43,22 +45,30 @@ export const TaskCourtName: React.FC<TaskCourtNameProps> = ({
       </h3>
 
       {editing ? (
-        <div className="flex gap-2">
-          <Input
-            value={courtName}
-            onChange={(e) => setCourtName(e.target.value)}
-          />
-          <Button size="sm" onClick={handleSave}>
-            Save
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
-            Cancel
-          </Button>
-        </div>
+        !isClient && ( // 👈 Only allow edit if NOT client
+          <div className="flex gap-2">
+            <Input
+              value={courtName}
+              onChange={(e) => setCourtName(e.target.value)}
+            />
+            <Button size="sm" onClick={handleSave}>
+              Save
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditing(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        )
       ) : (
         <div
-          className="text-sm cursor-pointer hover:underline"
-          onClick={() => setEditing(true)}
+          className={`text-sm ${
+            !isClient ? "cursor-pointer hover:underline" : ""
+          }`}
+          onClick={() => !isClient && setEditing(true)} // 👈 Disable click for clients
         >
           {courtName || "Click to add court name"}
         </div>
