@@ -29,6 +29,14 @@ const taskSchema = new Schema(
     watchers: [{ type: Schema.Types.ObjectId, ref: "User" }],
     dueDate: { type: Date },
     courtName: { type: String, trim: true },
+    hearings: [
+      {
+        date: { type: Date, required: true },
+        description: { type: String, trim: true },
+        inFavour: { type: Boolean, required: true }, // true = our favour
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     completedAt: { type: Date },
     estimatedHours: { type: Number, min: 0 },
     actualHours: { type: Number, min: 0 },

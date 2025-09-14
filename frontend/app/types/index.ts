@@ -85,8 +85,14 @@ export interface Task {
   watchers?: User[];
   attachments?: Attachment[];
   courtName?: string;
+  hearings?: Hearing[];
 }
-
+export interface Hearing {
+  date: string; // ISO string
+  description?: string;
+  inFavour: boolean;
+  createdAt: string;
+}
 export interface Attachment {
   fileName: string;
   fileUrl: string;

@@ -22,6 +22,7 @@ import {
   updateTaskTitle,
   watchTask,
   updateTaskCourtName,
+  addTaskHearing,
 } from "../controllers/task.js";
 import authMiddleware from "../middleware/auth-middleware.js";
 
@@ -187,6 +188,19 @@ router.put(
     body: z.object({ courtName: z.string() }),
   }),
   updateTaskCourtName
+);
+router.put(
+  "/:taskId/hearings",
+  authMiddleware,
+  validateRequest({
+    params: z.object({ taskId: z.string() }),
+    body: z.object({
+      date: z.string(), // ISO string from frontend
+      description: z.string().optional(),
+      inFavour: z.boolean(),
+    }),
+  }),
+  addTaskHearing
 );
 
 export default router;

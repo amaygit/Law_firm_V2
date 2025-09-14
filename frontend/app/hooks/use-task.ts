@@ -22,6 +22,7 @@ export const useTaskByIdQuery = (taskId: string) => {
     task: Task;
     project: any;
     role: "owner" | "subLawyer" | "client" | null;
+    favourPercentage: number;
   }>({
     queryKey: ["task", taskId],
     queryFn: () => fetchData(`/tasks/${taskId}`),
@@ -262,6 +263,27 @@ export const useUpdateTaskCourtNameMutation = () => {
       queryClient.invalidateQueries({
         queryKey: ["task-activity", data._id],
       });
+    },
+  });
+};
+export const useAddTaskHearingMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      taskId: string;
+      date: string;
+      description?: string;
+      inFavour: boolean;
+    }) =>
+      updateData(`/tasks/${data.taskId}/hearings`, {
+        date: data.date,
+        description: data.description,
+        inFavour: data.inFavour,
+      }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+      queryClient.invalidateQueries({ queryKey: ["task-activity", data._id] });
     },
   });
 };

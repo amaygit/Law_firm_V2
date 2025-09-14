@@ -104,11 +104,12 @@ const getTaskById = async (req, res) => {
     } else if (project.owner.toString() === req.user._id.toString()) {
       role = "owner";
     }
-
+    const favourPercentage = calculateFavourPercentage(task.hearings);
     res.status(200).json({
       task,
       project,
-      role, // ✅ send role
+      role,
+      favourPercentage,
     });
   } catch (error) {
     console.error(error);
@@ -718,6 +719,37 @@ export const updateTaskCourtName = async (req, res) => {
     res.status(200).json(task);
   } catch (error) {
     res.status(500).json({ message: "Failed to update court name", error });
+  }
+};
+
+const calculateFavourPercentage = (hearings) => {
+  if (!hearings || hearings.length === 0) return 0;
+  const favourCount = hearings.filter((h) => h.inFavour).length;
+  return Math.round((favourCount / hearings.length) * 100);
+};
+
+export const addTaskHearing = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { date, description, inFavour } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    task.hearings.push({ date, description, inFavour });
+    await task.save();
+
+    // calculate favour percentage
+    const favourPercentage = calculateFavourPercentage(task.hearings);
+
+    res.status(200).json({
+      task,
+      favourPercentage,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add hearing", error });
   }
 };
 

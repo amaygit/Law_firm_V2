@@ -15,7 +15,7 @@ import { Watchers } from "@/components/task/watchers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskCourtName } from "@/components/task/TaskCourtName";
-
+import { TaskHearings } from "@/components/task/TaskHearings";
 import {
   useAchievedTaskMutation,
   useTaskByIdQuery,
@@ -169,6 +169,7 @@ const TaskDetails = () => {
       task: Task;
       project: Project;
       role: "owner" | "subLawyer" | "client" | null;
+      favourPercentage: number;
     };
     isLoading: boolean;
   };
@@ -198,7 +199,7 @@ const TaskDetails = () => {
 
   const { task, project, role } = data;
   const isClient = role === "client";
-
+  const favourPercentage = data.favourPercentage;
   const isUserWatching = task?.watchers?.some(
     (watcher) => watcher._id.toString() === user?._id.toString()
   );
@@ -377,6 +378,12 @@ const TaskDetails = () => {
 
         {/* right side */}
         <div className="w-full">
+          <TaskHearings
+            taskId={task._id}
+            hearings={task.hearings}
+            isClient={isClient}
+            favourPercentage={favourPercentage}
+          />
           <Watchers watchers={task.watchers || []} />
           <TaskActivity resourceId={task._id} />
           <TaskFiles taskId={task._id} key={filesRefreshKey} />
