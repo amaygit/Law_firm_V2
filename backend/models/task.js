@@ -58,6 +58,8 @@ const taskSchema = new Schema(
       },
     ],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
+    internalComments: [{ type: Schema.Types.ObjectId, ref: "InternalComment" }],
+
     attachments: [
       {
         fileName: { type: String, required: true },

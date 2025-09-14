@@ -23,6 +23,8 @@ import {
   watchTask,
   updateTaskCourtName,
   addTaskHearing,
+  addInternalComment,
+  getInternalCommentsByTaskId,
 } from "../controllers/task.js";
 import authMiddleware from "../middleware/auth-middleware.js";
 
@@ -201,6 +203,24 @@ router.put(
     }),
   }),
   addTaskHearing
+);
+router.post(
+  "/:taskId/add-internal-comment",
+  authMiddleware,
+  validateRequest({
+    params: z.object({ taskId: z.string() }),
+    body: z.object({ text: z.string() }),
+  }),
+  addInternalComment
+);
+
+router.get(
+  "/:taskId/internal-comments",
+  authMiddleware,
+  validateRequest({
+    params: z.object({ taskId: z.string() }),
+  }),
+  getInternalCommentsByTaskId
 );
 
 export default router;

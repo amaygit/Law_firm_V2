@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskCourtName } from "@/components/task/TaskCourtName";
 import { TaskHearings } from "@/components/task/TaskHearings";
+import { InternalCommentSection } from "@/components/task/InternalComments";
 import {
   useAchievedTaskMutation,
   useTaskByIdQuery,
@@ -374,6 +375,12 @@ const TaskDetails = () => {
           </div>
 
           <CommentSection taskId={task._id} members={project.members as any} />
+          {!isClient && (
+            <InternalCommentSection
+              taskId={task._id}
+              members={project.members as any}
+            />
+          )}
         </div>
 
         {/* right side */}

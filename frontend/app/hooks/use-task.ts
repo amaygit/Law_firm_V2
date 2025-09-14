@@ -287,3 +287,28 @@ export const useAddTaskHearingMutation = () => {
     },
   });
 };
+
+// Add Internal Comment
+export const useAddInternalCommentMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { taskId: string; text: string }) =>
+      postData(`/tasks/${data.taskId}/add-internal-comment`, {
+        text: data.text,
+      }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({
+        queryKey: ["internal-comments", data.task],
+      });
+      // ❌ don't touch "task-activity"
+    },
+  });
+};
+// Get Internal Comments by Task ID
+export const useGetInternalCommentsByTaskIdQuery = (taskId: string) => {
+  return useQuery({
+    queryKey: ["internal-comments", taskId],
+    queryFn: () => fetchData(`/tasks/${taskId}/internal-comments`),
+  });
+};

@@ -162,6 +162,19 @@ export interface Comment {
     fileSize?: number;
   }[];
 }
+export interface InternalComment {
+  _id: string;
+  author: User;
+  text: string;
+  createdAt: Date;
+  reactions?: CommentReaction[];
+  attachments?: {
+    fileName: string;
+    fileUrl: string;
+    fileType?: string;
+    fileSize?: number;
+  }[];
+}
 export interface StatsCardProps {
   totalProjects: number;
   totalTasks: number;

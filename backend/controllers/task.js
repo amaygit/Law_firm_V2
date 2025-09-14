@@ -1,6 +1,7 @@
 import { recordActivity } from "../libs/index.js";
 import ActivityLog from "../models/activity.js";
 import Comment from "../models/comment.js";
+import InternalComment from "../models/internalComments.js";
 import Project from "../models/project.js";
 import Task from "../models/task.js";
 import Workspace from "../models/workspace.js";
@@ -750,6 +751,78 @@ export const addTaskHearing = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to add hearing", error });
+  }
+};
+export const getInternalCommentsByTaskId = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const comments = await InternalComment.find({ task: taskId })
+      .populate("author", "name profilePicture")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+export const addInternalComment = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { text } = req.body;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        message: "case not found",
+      });
+    }
+
+    const project = await Project.findById(task.project);
+
+    if (!project) {
+      return res.status(404).json({
+        message: "case not found",
+      });
+    }
+
+    const isMember = project.members.some(
+      (member) => member.user.toString() === req.user._id.toString()
+    );
+
+    if (!isMember) {
+      return res.status(403).json({
+        message: "You are not a member of this case",
+      });
+    }
+
+    const newComment = await InternalComment.create({
+      text,
+      task: taskId,
+      author: req.user._id,
+    });
+
+    task.comments.push(newComment._id);
+    await task.save();
+
+    // record activity
+    // await recordActivity(req.user._id, "added_comment", "Task", taskId, {
+    //   description: `added comment ${
+    //     text.substring(0, 50) + (text.length > 50 ? "..." : "")
+    //   }`,
+    // });
+
+    res.status(201).json(newComment);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
 
