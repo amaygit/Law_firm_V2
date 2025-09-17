@@ -68,6 +68,7 @@ const taskSchema = new Schema(
         fileSize: { type: Number },
         uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
         uploadedAt: { type: Date, default: Date.now },
+        workspaceOwner: { type: Schema.Types.ObjectId, ref: "User" },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

@@ -825,7 +825,68 @@ export const addInternalComment = async (req, res) => {
     });
   }
 };
+export const addTaskAttachment = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { fileName, fileUrl, fileType, fileSize } = req.body;
 
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Get workspace and owner
+    const workspace = await Workspace.findById(task.workspace);
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    // Check storage limit before adding
+    const ownedWorkspaces = await Workspace.find({
+      owner: workspace.owner,
+    }).select("_id");
+    const workspaceIds = ownedWorkspaces.map((ws) => ws._id);
+
+    const storageUsage = await Task.aggregate([
+      { $match: { workspace: { $in: workspaceIds } } },
+      { $unwind: "$attachments" },
+      {
+        $group: {
+          _id: workspace.owner,
+          totalSizeBytes: { $sum: "$attachments.fileSize" },
+        },
+      },
+    ]);
+
+    const currentUsageBytes = storageUsage[0]?.totalSizeBytes || 0;
+    const limitBytes = 2 * 1024 * 1024 * 1024; // 2GB
+
+    if (currentUsageBytes + fileSize > limitBytes) {
+      return res.status(413).json({
+        message: "Storage limit exceeded for workspace owner",
+      });
+    }
+
+    // Add attachment with workspace owner tracking
+    const attachment = {
+      fileName,
+      fileUrl,
+      fileType,
+      fileSize,
+      uploadedBy: req.user._id,
+      workspaceOwner: workspace.owner, // Track who this counts against
+      uploadedAt: new Date(),
+    };
+
+    task.attachments.push(attachment);
+    await task.save();
+
+    res.json({ message: "File attached successfully", task });
+  } catch (error) {
+    console.error("Error adding attachment:", error);
+    res.status(500).json({ message: "Failed to add attachment" });
+  }
+};
 export {
   createTask,
   getTaskById,

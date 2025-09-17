@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Link, useLoaderData, useLocation, useNavigate } from "react-router";
 import { WorkspaceAvatar } from "../workspace/workspace-avatar";
+import { StorageIndicator } from "../storage-indicator";
 
 interface HeaderProps {
   onWorkspaceSelected: (workspace: Workspace) => void;
@@ -71,8 +72,13 @@ export const Header = ({
 
             <DropdownMenuGroup>
               {workspaces.map((ws) => (
-                <DropdownMenuItem key={ws._id} onClick={() => handleOnClick(ws)}>
-                  {ws.color && <WorkspaceAvatar color={ws.color} name={ws.name} />}
+                <DropdownMenuItem
+                  key={ws._id}
+                  onClick={() => handleOnClick(ws)}
+                >
+                  {ws.color && (
+                    <WorkspaceAvatar color={ws.color} name={ws.name} />
+                  )}
                   <span className="ml-2">{ws.name}</span>
                 </DropdownMenuItem>
               ))}
@@ -88,6 +94,7 @@ export const Header = ({
         </DropdownMenu>
 
         <div className="flex items-center gap-2">
+          <StorageIndicator />
           <Button variant="ghost" size="icon">
             <Bell />
           </Button>

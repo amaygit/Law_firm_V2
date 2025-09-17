@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { useQueryClient } from "@tanstack/react-query";
 import { BackButton } from "@/components/back-button";
 import { Loader } from "@/components/loader";
 import { CommentSection } from "@/components/task/comment-section";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { TaskCourtName } from "@/components/task/TaskCourtName";
 import { TaskHearings } from "@/components/task/TaskHearings";
 import { InternalCommentSection } from "@/components/task/InternalComments";
+import { useRecordFileUpload } from "@/hooks/use-storage";
 import {
   useAchievedTaskMutation,
   useTaskByIdQuery,
@@ -45,6 +46,10 @@ const FileUploadButton: React.FC<{
   const [uploading, setUploading] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  const { mutate: recordUpload } = useRecordFileUpload();
+  //const { mutate: checkLimit } = useCheckStorageLimit();
+  const queryClient = useQueryClient();
+
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -54,6 +59,20 @@ const FileUploadButton: React.FC<{
     setUploading(true);
 
     try {
+      // Step 1: Check storage limit BEFORE upload
+      // const limitCheck = await new Promise((resolve, reject) => {
+      //   checkLimit(
+      //     { fileSize: file.size, taskId },
+      //     {
+      //       onSuccess: (data) => resolve(data),
+      //       onError: (error) => reject(error)
+      //     }
+      //   );
+      // });
+
+      //console.log("Storage limit check passed:", limitCheck);
+
+      // Step 2: Get S3 upload URL
       const response = await axios.post(
         "https://6g14bisq5c.execute-api.eu-north-1.amazonaws.com//upload",
         {
@@ -65,16 +84,40 @@ const FileUploadButton: React.FC<{
 
       const { uploadURL } = response.data;
 
+      // Step 3: Upload to S3
       await axios.put(uploadURL, file, {
-        headers: {
-          "Content-Type": file.type,
-        },
+        headers: { "Content-Type": file.type },
       });
 
-      toast.success("File uploaded!");
+      // Step 4: Record in database with workspace owner tracking
+      recordUpload({
+        taskId,
+        fileName: file.name,
+        fileUrl: uploadURL.split("?")[0],
+        fileType: file.type,
+        fileSize: file.size,
+      });
+
+      toast.success("File uploaded successfully!");
       onUploadSuccess();
-    } catch (err) {
-      toast.error("File upload failed.");
+
+      // Force refresh storage usage
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["storage-usage"] });
+      }, 1000);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+
+      if (err.response?.status === 413) {
+        const errorData = err.response.data;
+        toast.error(
+          `Storage limit exceeded! Available: ${errorData.availableMB?.toFixed(
+            1
+          )} MB, Requested: ${errorData.requestedMB?.toFixed(1)} MB`
+        );
+      } else {
+        toast.error("File upload failed. Please try again.");
+      }
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -88,7 +131,7 @@ const FileUploadButton: React.FC<{
         ref={inputRef}
         style={{ display: "none" }}
         onChange={handleFileChange}
-        accept="image/*"
+        accept="image/*,application/pdf,.doc,.docx,.txt"
         disabled={uploading || disabled}
       />
       <Button
