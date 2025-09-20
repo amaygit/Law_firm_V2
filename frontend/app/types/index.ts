@@ -208,3 +208,30 @@ export interface WorkspaceProductivityData {
   completed: number;
   total: number;
 }
+// export interface Event {
+//   _id: string;
+//   title: string;
+//   description?: string;
+//   dateTime: string;
+//   phoneNumber: string;
+//   createdBy: {
+//     _id: string;
+//     name: string;
+//     email: string;
+//   };
+//   workspace: string;
+//   notificationSent: boolean;
+//   reminderJobId?: string;
+//   status: "scheduled" | "completed" | "cancelled";
+//   createdAt: string;
+//   updatedAt: string;
+// }
+export interface Event {
+  _id: string;
+  title: string;
+  description: string;
+  datetime: string; // ISO string
+  phoneNumbers: string[];
+  createdAt: string;
+  updatedAt: string;
+}

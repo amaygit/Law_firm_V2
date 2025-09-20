@@ -67,3 +67,15 @@ export const inviteMemberSchema = z.object({
   email: z.string().email(),
   // role: z.enum(["admin", "member", "viewer"]),
 });
+export const eventSchema = z.object({
+  title: z.string().min(1, "Event title is required"),
+  description: z.string().optional(),
+  dateTime: z.string().min(1, "Date and time is required"),
+  workspaceId: z.string().min(1, "Workspace is required"),
+  phoneNumber: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .regex(/^[\+]?[0-9\s\-\(\)]+$/, "Please enter a valid phone number"),
+});
+
+export type EventFormData = z.infer<typeof eventSchema>;
