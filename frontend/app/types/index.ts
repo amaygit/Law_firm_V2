@@ -229,9 +229,18 @@ export interface WorkspaceProductivityData {
 export interface Event {
   _id: string;
   title: string;
-  description: string;
-  datetime: string; // ISO string
-  phoneNumbers: string[];
+  description?: string;
+  dateTime: string; // ISO string
+  phoneNumbers: string[]; // ✅ Changed to array, max 2 numbers
+  createdBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  // ✅ REMOVED: workspace field
+  notificationSent: boolean;
+  reminderJobId?: string;
+  status: "scheduled" | "completed" | "cancelled";
   createdAt: string;
   updatedAt: string;
 }

@@ -1,35 +1,30 @@
-import React, { useState } from "react";
+import React from "react";
 import { format } from "date-fns";
 import {
   Calendar,
   Clock,
   MessageSquare,
+  Phone,
   MoreHorizontal,
   Pencil,
   Trash2,
-  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import { useGetEvents, useDeleteEvent, type Event } from "@/hooks/use-event";
+import { useGetMyEvents, useDeleteEvent, type Event } from "@/hooks/use-event";
 import { Loader } from "@/components/loader";
 
-interface EventsListProps {
-  workspaceId: string;
-}
-
-export const EventsList: React.FC<EventsListProps> = ({ workspaceId }) => {
-  const { data, isLoading, error } = useGetEvents(workspaceId);
+export const MyEventsList: React.FC = () => {
+  const { data, isLoading, error } = useGetMyEvents();
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
 
   const handleDeleteEvent = (eventId: string, eventTitle: string) => {
@@ -69,7 +64,7 @@ export const EventsList: React.FC<EventsListProps> = ({ workspaceId }) => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">Failed to load events</p>
+        <p className="text-red-500">Failed to load your events</p>
       </div>
     );
   }
@@ -81,7 +76,7 @@ export const EventsList: React.FC<EventsListProps> = ({ workspaceId }) => {
       <div className="text-center py-8">
         <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Events</h3>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground">
           You haven't created any events yet.
         </p>
       </div>
@@ -129,8 +124,8 @@ export const EventsList: React.FC<EventsListProps> = ({ workspaceId }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   <span>{format(new Date(event.dateTime), "MMM d, yyyy")}</span>
@@ -139,40 +134,70 @@ export const EventsList: React.FC<EventsListProps> = ({ workspaceId }) => {
                   <Clock className="h-4 w-4" />
                   <span>{format(new Date(event.dateTime), "h:mm a")}</span>
                 </div>
+
+                {/* ✅ NEW: Display multiple phone numbers */}
                 <div className="flex items-center gap-1">
                   <Phone className="h-4 w-4" />
-                  <span>{event.phoneNumber}</span>
+                  <div className="flex flex-wrap gap-1">
+                    {event.phoneNumbers.map((phone, index) => (
+                      <span
+                        key={index}
+                        className="bg-muted px-2 py-1 rounded text-xs"
+                      >
+                        {phone}
+                        {index < event.phoneNumbers.length - 1 && ","}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {event.notificationSent && (
-                  <Badge
-                    variant="outline"
-                    className="text-green-600 border-green-600"
-                  >
-                    <MessageSquare className="mr-1 h-3 w-3" />
-                    Sent
-                  </Badge>
-                )}
-                {isEventPast(event.dateTime) && !event.notificationSent && (
-                  <Badge
-                    variant="outline"
-                    className="text-orange-600 border-orange-600"
-                  >
-                    Missed
-                  </Badge>
-                )}
-              </div>
-            </div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  Created{" "}
+                  {format(new Date(event.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                </div>
 
-            <div className="mt-2 text-xs text-muted-foreground">
-              Created by {event.createdBy.name} •{" "}
-              {format(new Date(event.createdAt), "MMM d, yyyy")}
+                <div className="flex items-center gap-2">
+                  {/* ✅ Recipients count badge */}
+                  <Badge
+                    variant="outline"
+                    className="text-blue-600 border-blue-600"
+                  >
+                    {event.phoneNumbers.length} recipient
+                    {event.phoneNumbers.length > 1 ? "s" : ""}
+                  </Badge>
+
+                  {event.notificationSent && (
+                    <Badge
+                      variant="outline"
+                      className="text-green-600 border-green-600"
+                    >
+                      <MessageSquare className="mr-1 h-3 w-3" />
+                      Sent
+                    </Badge>
+                  )}
+                  {isEventPast(event.dateTime) && !event.notificationSent && (
+                    <Badge
+                      variant="outline"
+                      className="text-orange-600 border-orange-600"
+                    >
+                      Missed
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       ))}
+
+      {/* ✅ NEW: Pagination info if available */}
+      {data?.pagination && (
+        <div className="text-center text-sm text-muted-foreground">
+          Page {data.pagination.current} of {data.pagination.total}
+        </div>
+      )}
     </div>
   );
 };

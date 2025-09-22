@@ -1,7 +1,6 @@
 import express from "express";
 import {
   createEvent,
-  getEvents,
   updateEvent,
   deleteEvent,
   getMyEvents,
@@ -12,15 +11,18 @@ import { z } from "zod";
 
 const router = express.Router();
 
+// ✅ UPDATED: Validation schema for workspace-independent events
 const eventSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Title is required").max(100, "Title too long"),
   description: z.string().optional(),
   dateTime: z.string().min(1, "Date and time is required"),
-  workspaceId: z.string().min(1, "Workspace ID is required"),
-  phoneNumber: z.string().min(10, "Valid phone number is required"),
+  phoneNumbers: z
+    .array(z.string().min(10, "Valid phone number is required"))
+    .min(1, "At least one phone number is required")
+    .max(2, "Maximum 2 phone numbers allowed"),
 });
 
-// Create event
+// Create event (workspace independent)
 router.post(
   "/",
   authMiddleware,
@@ -28,10 +30,7 @@ router.post(
   createEvent
 );
 
-// Get workspace events
-router.get("/workspace/:workspaceId", authMiddleware, getEvents);
-
-// Get my events
+// Get my events (all user's events)
 router.get("/my-events", authMiddleware, getMyEvents);
 
 // Update event
@@ -56,12 +55,3 @@ router.delete(
 );
 
 export default router;
-// import express from "express";
-// import { createEvent, getEvents } from "../controllers/event.js";
-
-// const router = express.Router();
-
-// router.post("/", createEvent); // POST /api/events
-// router.get("/", getEvents); // GET /api/events
-
-// export default router;

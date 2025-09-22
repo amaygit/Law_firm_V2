@@ -1,19 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchData, postData, updateData, deleteData } from "@/lib/fetch-util";
 
+// ✅ UPDATED: Event interface (workspace independent, multiple phone numbers)
 export interface Event {
   _id: string;
   title: string;
   description?: string;
   dateTime: string;
-  phoneNumber: string;
+  phoneNumbers: string[]; // ✅ Changed to array
   createdBy: {
     _id: string;
     name: string;
     email: string;
   };
-  workspace: string;
+  // ✅ REMOVED: workspace field
   notificationSent: boolean;
+  reminderJobId?: string;
   status: "scheduled" | "completed" | "cancelled";
   createdAt: string;
   updatedAt: string;
@@ -27,32 +29,33 @@ export const useCreateEvent = () => {
       title: string;
       description?: string;
       dateTime: string;
-      workspaceId: string;
-      phoneNumber: string;
+      phoneNumbers: string[];
     }) => postData("/events", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      // ✅ REMOVED: workspace events query invalidation
     },
   });
 };
 
-export const useGetEvents = (workspaceId: string) => {
-  return useQuery<{ events: Event[] }>({
-    queryKey: ["events", workspaceId],
-    queryFn: () => fetchData(`/events/workspace/${workspaceId}`),
-    enabled: !!workspaceId,
-  });
-};
+// ✅ REMOVED: useGetEvents (workspace-specific events)
 
 export const useGetMyEvents = () => {
-  return useQuery<{ events: Event[] }>({
+  return useQuery<{
+    success: boolean;
+    events: Event[];
+    pagination?: {
+      current: number;
+      total: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }>({
     queryKey: ["my-events"],
     queryFn: () => fetchData("/events/my-events"),
   });
 };
 
-// ✅ FIXED: Corrected the updateEvent hook
 export const useUpdateEvent = () => {
   const queryClient = useQueryClient();
 
@@ -62,14 +65,12 @@ export const useUpdateEvent = () => {
       title?: string;
       description?: string;
       dateTime?: string;
-      phoneNumber?: string;
+      phoneNumbers?: string[];
     }) => {
       const { eventId, ...updatePayload } = data;
-      // ✅ Fixed: Call updateData function correctly
       return updateData(`/events/${eventId}`, updatePayload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
     },
   });
@@ -81,7 +82,6 @@ export const useDeleteEvent = () => {
   return useMutation({
     mutationFn: (eventId: string) => deleteData(`/events/${eventId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
     },
   });

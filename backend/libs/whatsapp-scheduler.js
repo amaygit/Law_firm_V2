@@ -4,9 +4,14 @@ import Event from "../models/event.js";
 // Store scheduled jobs in memory (in production, use Redis)
 const scheduledJobs = new Map();
 
-// ✅ CORRECTED: Twilio WhatsApp implementation
+// ✅ TWILIO WHATSAPP IMPLEMENTATION
 export const sendWhatsAppViaTwilio = async (phoneNumber, message) => {
   try {
+    // Validate Twilio credentials
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      throw new Error("Twilio credentials not configured");
+    }
+
     // Import Twilio
     const twilio = await import("twilio");
     const client = twilio.default(
@@ -30,16 +35,21 @@ export const sendWhatsAppViaTwilio = async (phoneNumber, message) => {
       }
     }
 
-    console.log(`Sending WhatsApp to: ${formattedNumber}`);
+    // ✅ TWILIO SANDBOX: Use your Twilio WhatsApp sandbox number
+    // For production, replace with your approved Twilio WhatsApp number
+    const twilioWhatsAppNumber =
+      process.env.TWILIO_WHATSAPP_NUMBER || "whatsapp:+14155238886";
+
+    console.log(`📱 Sending WhatsApp via Twilio to: ${formattedNumber}`);
 
     const result = await client.messages.create({
       body: message,
-      from: "whatsapp:+14155238886", // Twilio Sandbox WhatsApp number
-      to: `whatsapp:${formattedNumber}`, // ✅ User's phone number
+      from: twilioWhatsAppNumber, // Your Twilio WhatsApp number
+      to: `whatsapp:${formattedNumber}`,
     });
 
     console.log(`✅ WhatsApp sent successfully! SID: ${result.sid}`);
-    return true;
+    return { success: true, sid: result.sid };
   } catch (error) {
     console.error("❌ Failed to send WhatsApp message:", error.message);
 
@@ -47,89 +57,49 @@ export const sendWhatsAppViaTwilio = async (phoneNumber, message) => {
     if (error.code) {
       console.error(`Twilio Error Code: ${error.code}`);
     }
-    return false;
+    return { success: false, error: error.message };
   }
 };
 
-// // Alternative: WhatsApp Web method (completely free)
-// import { Client, LocalAuth } from "whatsapp-web.js";
+// ✅ TWILIO RATE LIMITING: Send to multiple phone numbers with proper delays
+export const sendWhatsAppToMultiple = async (phoneNumbers, message) => {
+  const results = [];
 
-// let whatsappClient = null;
+  for (const [index, phoneNumber] of phoneNumbers.entries()) {
+    try {
+      console.log(
+        `📤 Sending message ${index + 1}/${
+          phoneNumbers.length
+        } to ${phoneNumber}`
+      );
 
-// export const initializeWhatsApp = () => {
-//   try {
-//     whatsappClient = new Client({
-//       authStrategy: new LocalAuth({
-//         dataPath: "./whatsapp-session",
-//       }),
-//       puppeteer: {
-//         headless: true,
-//         args: [
-//           "--no-sandbox",
-//           "--disable-setuid-sandbox",
-//           "--disable-dev-shm-usage",
-//           "--disable-accelerated-2d-canvas",
-//           "--no-first-run",
-//           "--no-zygote",
-//           "--disable-gpu",
-//         ],
-//       },
-//     });
+      const result = await sendWhatsAppViaTwilio(phoneNumber, message);
+      results.push({
+        phoneNumber,
+        ...result,
+      });
 
-//     whatsappClient.on("qr", (qr) => {
-//       console.log("🔗 WhatsApp QR Code received!");
-//       console.log("📱 Scan this QR code with your WhatsApp:");
-//       console.log(
-//         "🔗 QR Generator: https://qr-server.com/api/v1/create-qr-code/?size=200x200&data=" +
-//           encodeURIComponent(qr)
-//       );
-//       console.log("\n" + qr + "\n");
-//     });
+      // ✅ TWILIO RATE LIMITING: Add delay between messages (avoid hitting Twilio limits)
+      if (index < phoneNumbers.length - 1) {
+        console.log(
+          `⏳ Waiting 3 seconds before next message (Twilio rate limiting)...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // 3 second delay
+      }
+    } catch (error) {
+      console.error(`❌ Failed to send to ${phoneNumber}:`, error.message);
+      results.push({
+        phoneNumber,
+        success: false,
+        error: error.message,
+      });
+    }
+  }
 
-//     whatsappClient.on("ready", () => {
-//       console.log("✅ WhatsApp Web client is ready!");
-//     });
+  return results;
+};
 
-//     whatsappClient.on("auth_failure", (msg) => {
-//       console.error("❌ WhatsApp authentication failed:", msg);
-//     });
-
-//     whatsappClient.on("disconnected", (reason) => {
-//       console.log("📱 WhatsApp client disconnected:", reason);
-//     });
-
-//     whatsappClient.initialize();
-//   } catch (error) {
-//     console.error("Failed to initialize WhatsApp Web:", error);
-//   }
-// };
-
-// export const sendWhatsAppViaWeb = async (phoneNumber, message) => {
-//   try {
-//     if (!whatsappClient) {
-//       throw new Error("WhatsApp client not initialized");
-//     }
-
-//     // Format phone number for WhatsApp Web
-//     let formattedNumber = phoneNumber.replace(/[^\d]/g, ""); // Remove all non-digits
-
-//     // Add country code if not present
-//     if (!formattedNumber.startsWith("91") && formattedNumber.length === 10) {
-//       formattedNumber = "91" + formattedNumber; // Default to India
-//     }
-
-//     const chatId = formattedNumber + "@c.us";
-
-//     await whatsappClient.sendMessage(chatId, message);
-//     console.log(`✅ WhatsApp Web message sent to ${phoneNumber}`);
-//     return true;
-//   } catch (error) {
-//     console.error("❌ Failed to send WhatsApp Web message:", error.message);
-//     return false;
-//   }
-// };
-
-// ✅ MAIN FUNCTION: Schedule WhatsApp message
+// ✅ UPDATED: Schedule WhatsApp message for multiple numbers
 export const scheduleWhatsAppMessage = async (event) => {
   const jobId = `event_${event._id}_${Date.now()}`;
 
@@ -159,6 +129,7 @@ export const scheduleWhatsAppMessage = async (event) => {
   }
 
   console.log(`⏰ Scheduling reminder for ${event.title} at ${eventDate}`);
+  console.log(`📱 Phone numbers: ${event.phoneNumbers.join(", ")}`);
 
   // Create cron expression for exact time
   const minutes = eventDate.getMinutes();
@@ -176,29 +147,38 @@ export const scheduleWhatsAppMessage = async (event) => {
       console.log(`🔔 Sending reminder for event: ${event.title}`);
 
       try {
-        // Try Twilio first, fallback to WhatsApp Web
-        let sent = await sendWhatsAppViaTwilio(event.phoneNumber, message);
+        // ✅ Send to all phone numbers
+        const results = await sendWhatsAppToMultiple(
+          event.phoneNumbers,
+          message
+        );
 
-        if (!sent) {
-          console.log("⚠️ Twilio failed, trying WhatsApp Web...");
-          sent = await sendWhatsAppViaWeb(event.phoneNumber, message);
-        }
+        // Check if at least one message was sent successfully
+        const successfulSends = results.filter((r) => r.success);
+        const hasAnySuccess = successfulSends.length > 0;
 
-        if (sent) {
+        console.log(`📊 WhatsApp Results:`, results);
+
+        if (hasAnySuccess) {
           // Update event status in database
           await Event.findByIdAndUpdate(event._id, {
             notificationSent: true,
             status: "completed",
           });
-          console.log("✅ Event status updated to completed");
+          console.log(
+            `✅ Event status updated to completed (${successfulSends.length}/${results.length} sent)`
+          );
         } else {
-          console.error("❌ All WhatsApp methods failed");
+          console.error("❌ All WhatsApp sends failed");
           await Event.findByIdAndUpdate(event._id, {
             status: "cancelled",
           });
         }
       } catch (error) {
         console.error("❌ Error in scheduled job:", error);
+        await Event.findByIdAndUpdate(event._id, {
+          status: "cancelled",
+        });
       }
 
       // Remove job from memory
@@ -216,7 +196,9 @@ export const scheduleWhatsAppMessage = async (event) => {
   // Store job reference
   scheduledJobs.set(jobId, job);
 
-  console.log(`✅ Scheduled WhatsApp reminder for ${event.title}`);
+  console.log(
+    `✅ Scheduled WhatsApp reminder for ${event.title} (${event.phoneNumbers.length} recipients)`
+  );
   return jobId;
 };
 

@@ -1,30 +1,29 @@
 import Event from "../models/event.js";
-import Workspace from "../models/workspace.js";
-import cron from "node-cron";
 import {
   scheduleWhatsAppMessage,
   cancelScheduledMessage,
 } from "../libs/whatsapp-scheduler.js";
 
-// Create event with WhatsApp scheduling
+// Create event (workspace independent)
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, dateTime, workspaceId, phoneNumber } = req.body;
+    const { title, description, dateTime, phoneNumbers } = req.body;
     const userId = req.user._id;
 
-    // Verify workspace membership
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
+    // ✅ Validation: Check phoneNumbers array
+    if (
+      !phoneNumbers ||
+      !Array.isArray(phoneNumbers) ||
+      phoneNumbers.length === 0
+    ) {
+      return res.status(400).json({
+        message: "At least one phone number is required",
+      });
     }
 
-    const isMember = workspace.members.some(
-      (member) => member.user.toString() === userId.toString()
-    );
-
-    if (!isMember) {
-      return res.status(403).json({
-        message: "You are not a member of this workspace",
+    if (phoneNumbers.length > 2) {
+      return res.status(400).json({
+        message: "Maximum 2 phone numbers allowed",
       });
     }
 
@@ -36,17 +35,27 @@ export const createEvent = async (req, res) => {
       });
     }
 
+    // Clean phone numbers
+    const cleanedPhoneNumbers = phoneNumbers
+      .map((phone) => phone.replace(/\D/g, ""))
+      .filter((phone) => phone.length >= 10);
+
+    if (cleanedPhoneNumbers.length === 0) {
+      return res.status(400).json({
+        message: "Please provide valid phone numbers",
+      });
+    }
+
     // Create event
     const newEvent = await Event.create({
       title,
       description,
       dateTime: eventDate,
       createdBy: userId,
-      workspace: workspaceId,
-      phoneNumber: phoneNumber.replace(/\D/g, ""), // Clean phone number
+      phoneNumbers: cleanedPhoneNumbers,
     });
 
-    // Schedule WhatsApp message
+    // Schedule WhatsApp messages
     try {
       const jobId = await scheduleWhatsAppMessage(newEvent);
       newEvent.reminderJobId = jobId;
@@ -57,45 +66,49 @@ export const createEvent = async (req, res) => {
     }
 
     res.status(201).json({
+      success: true,
       message: "Event created successfully",
       event: newEvent,
     });
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
-// Get events for workspace
-export const getEvents = async (req, res) => {
+// Get user's events (no workspace restriction)
+export const getMyEvents = async (req, res) => {
   try {
-    const { workspaceId } = req.params;
     const userId = req.user._id;
+    const { page = 1, limit = 10 } = req.query;
 
-    // Verify workspace access
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    const events = await Event.find({ createdBy: userId })
+      .sort({ dateTime: 1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .populate("createdBy", "name email");
 
-    const isMember = workspace.members.some(
-      (member) => member.user.toString() === userId.toString()
-    );
+    const total = await Event.countDocuments({ createdBy: userId });
 
-    if (!isMember) {
-      return res.status(403).json({
-        message: "You are not a member of this workspace",
-      });
-    }
-
-    const events = await Event.find({ workspace: workspaceId })
-      .populate("createdBy", "name email")
-      .sort({ dateTime: 1 });
-
-    res.json({ events });
+    res.json({
+      success: true,
+      events,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    });
   } catch (error) {
-    console.error("Error getting events:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error getting user events:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -103,22 +116,40 @@ export const getEvents = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { title, description, dateTime, phoneNumber } = req.body;
+    const { title, description, dateTime, phoneNumbers } = req.body;
     const userId = req.user._id;
 
     const event = await Event.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: "Event not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
     }
 
-    // Check if user created this event or is workspace member
-    const workspace = await Workspace.findById(event.workspace);
-    const isMember = workspace.members.some(
-      (member) => member.user.toString() === userId.toString()
-    );
+    // Check if user owns this event
+    if (event.createdBy.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
-    if (!isMember && event.createdBy.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
+    // Validate phoneNumbers if provided
+    if (phoneNumbers) {
+      if (!Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one phone number is required",
+        });
+      }
+
+      if (phoneNumbers.length > 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Maximum 2 phone numbers allowed",
+        });
+      }
     }
 
     // Cancel existing scheduled message
@@ -126,17 +157,30 @@ export const updateEvent = async (req, res) => {
       cancelScheduledMessage(event.reminderJobId);
     }
 
-    // Update event
-    event.title = title || event.title;
-    event.description = description || event.description;
-    event.phoneNumber = phoneNumber
-      ? phoneNumber.replace(/\D/g, "")
-      : event.phoneNumber;
+    // Update event fields
+    if (title) event.title = title;
+    if (description !== undefined) event.description = description;
+
+    if (phoneNumbers) {
+      const cleanedPhoneNumbers = phoneNumbers
+        .map((phone) => phone.replace(/\D/g, ""))
+        .filter((phone) => phone.length >= 10);
+
+      if (cleanedPhoneNumbers.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide valid phone numbers",
+        });
+      }
+
+      event.phoneNumbers = cleanedPhoneNumbers;
+    }
 
     if (dateTime) {
       const newEventDate = new Date(dateTime);
       if (newEventDate <= new Date()) {
         return res.status(400).json({
+          success: false,
           message: "Event date must be in the future",
         });
       }
@@ -155,12 +199,16 @@ export const updateEvent = async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: "Event updated successfully",
       event,
     });
   } catch (error) {
     console.error("Error updating event:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -172,12 +220,18 @@ export const deleteEvent = async (req, res) => {
 
     const event = await Event.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: "Event not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
     }
 
-    // Check if user created this event
+    // Check if user owns this event
     if (event.createdBy.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
     // Cancel scheduled message
@@ -187,25 +241,15 @@ export const deleteEvent = async (req, res) => {
 
     await Event.findByIdAndDelete(eventId);
 
-    res.json({ message: "Event deleted successfully" });
+    res.json({
+      success: true,
+      message: "Event deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting event:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-// Get user's events
-export const getMyEvents = async (req, res) => {
-  try {
-    const userId = req.user._id;
-
-    const events = await Event.find({ createdBy: userId })
-      .populate("workspace", "name")
-      .sort({ dateTime: 1 });
-
-    res.json({ events });
-  } catch (error) {
-    console.error("Error getting user events:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
