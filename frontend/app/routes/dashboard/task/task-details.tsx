@@ -408,11 +408,20 @@ const TaskDetails = () => {
               task={task}
               clients={task.clients}
               projectMembers={project.members as any}
+              isClient={isClient}
             />
 
-            <TaskPrioritySelector priority={task.priority} taskId={task._id} />
-
-            <SubTasksDetails subTasks={task.subtasks || []} taskId={task._id} />
+            {!isClient && (
+              <TaskPrioritySelector
+                priority={task.priority}
+                taskId={task._id}
+              />
+            )}
+            <SubTasksDetails
+              subTasks={task.subtasks || []}
+              taskId={task._id}
+              isClient={isClient}
+            />
             {/* </>
             )} */}
           </div>

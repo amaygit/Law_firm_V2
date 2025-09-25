@@ -13,9 +13,11 @@ import { toast } from "sonner";
 export const SubTasksDetails = ({
   subTasks,
   taskId,
+  isClient,
 }: {
   subTasks: Subtask[];
   taskId: string;
+  isClient?: boolean;
 }) => {
   const [newSubTask, setNewSubTask] = useState("");
   const { mutate: addSubTask, isPending } = useAddSubTaskMutation();
@@ -65,14 +67,16 @@ export const SubTasksDetails = ({
         {subTasks.length > 0 ? (
           subTasks.map((subTask) => (
             <div key={subTask._id} className="flex items-center space-x-2">
-              <Checkbox
-                id={subTask._id}
-                checked={subTask.completed}
-                onCheckedChange={(checked) =>
-                  handleToggleTask(subTask._id, !!checked)
-                }
-                disabled={isUpdating}
-              />
+              {!isClient && (
+                <Checkbox
+                  id={subTask._id}
+                  checked={subTask.completed}
+                  onCheckedChange={(checked) =>
+                    handleToggleTask(subTask._id, !!checked)
+                  }
+                  disabled={isUpdating}
+                />
+              )}
 
               <label
                 className={cn(
@@ -85,26 +89,29 @@ export const SubTasksDetails = ({
             </div>
           ))
         ) : (
-          <div className="text-sm text-muted-foreground">No hearing or filing</div>
+          <div className="text-sm text-muted-foreground">
+            No hearing or filing
+          </div>
         )}
       </div>
+      {!isClient && (
+        <div className="flex ">
+          <Input
+            placeholder="Add a hearing or filing"
+            value={newSubTask}
+            onChange={(e) => setNewSubTask(e.target.value)}
+            className="mr-1"
+            disabled={isPending}
+          />
 
-      <div className="flex ">
-        <Input
-          placeholder="Add a hearing or filing"
-          value={newSubTask}
-          onChange={(e) => setNewSubTask(e.target.value)}
-          className="mr-1"
-          disabled={isPending}
-        />
-
-        <Button
-          onClick={handleAddSubTask}
-          disabled={isPending || newSubTask.length === 0}
-        >
-          Add
-        </Button>
-      </div>
+          <Button
+            onClick={handleAddSubTask}
+            disabled={isPending || newSubTask.length === 0}
+          >
+            Add
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
