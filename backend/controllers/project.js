@@ -5,7 +5,7 @@ import Task from "../models/task.js";
 const createProject = async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const { title, description, status, startDate, dueDate, tags, members } =
+    const { title, description, status, startDate, dueDate, members, tags } =
       req.body;
 
     const workspace = await Workspace.findById(workspaceId);
@@ -26,7 +26,22 @@ const createProject = async (req, res) => {
       });
     }
 
-    const tagArray = tags ? tags.split(",") : [];
+    // ✅ NEW: Automatically add creator to members if not already included
+    const creatorId = req.user._id.toString();
+    const finalMembers = members || [];
+
+    // Check if creator is already in the members list
+    const creatorExists = finalMembers.some(
+      (member) => member.user === creatorId
+    );
+
+    // Add creator as manager if not already present
+    if (!creatorExists) {
+      finalMembers.push({
+        user: creatorId,
+        role: "manager", // ✅ Auto-assign creator as manager
+      });
+    }
 
     const newProject = await Project.create({
       title,
@@ -34,16 +49,13 @@ const createProject = async (req, res) => {
       status,
       startDate,
       dueDate,
-      tags: tagArray,
+      members: finalMembers, // ✅ Use the updated members array
+      tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
       workspace: workspaceId,
-      members,
       createdBy: req.user._id,
     });
 
-    workspace.projects.push(newProject._id);
-    await workspace.save();
-
-    return res.status(201).json(newProject);
+    res.status(201).json(newProject);
   } catch (error) {
     console.log(error);
     return res.status(500).json({
@@ -158,5 +170,3 @@ const deleteProject = async (req, res) => {
 };
 
 export { createProject, getProjectDetails, getProjectTasks, deleteProject };
-
-

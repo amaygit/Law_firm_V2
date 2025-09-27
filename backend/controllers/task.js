@@ -44,14 +44,20 @@ const createTask = async (req, res) => {
         message: "You are not a member of this workspace",
       });
     }
+    const creatorId = req.user._id.toString();
+    const finalAssignees = assignees || [];
 
+    // Add creator to assignees if not already present
+    if (!finalAssignees.includes(creatorId)) {
+      finalAssignees.push(creatorId);
+    }
     const newTask = await Task.create({
       title,
       description,
       status,
       priority,
       dueDate,
-      assignees,
+      assignees: finalAssignees,
       clients,
       project: projectId,
       workspace: project.workspace,

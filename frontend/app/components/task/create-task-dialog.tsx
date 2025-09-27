@@ -1,3 +1,5 @@
+// In frontend/app/components/task/create-task-dialog.tsx - Update the CreateTaskDialog component
+
 import {
   Dialog,
   DialogContent,
@@ -35,8 +37,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-// import { useDeleteProject } from "@/hooks/use-project";
-// import { useNavigate } from "react-router";
+import { useAuth } from "@/provider/auth-context"; // ✅ NEW: Import auth context
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -53,6 +54,8 @@ export const CreateTaskDialog = ({
   projectId,
   projectMembers,
 }: CreateTaskDialogProps) => {
+  const { user } = useAuth(); // ✅ NEW: Get current user
+
   const form = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
@@ -61,7 +64,7 @@ export const CreateTaskDialog = ({
       status: "To Do",
       priority: "Medium",
       dueDate: "",
-      assignees: [],
+      assignees: user ? [user._id] : [], // ✅ NEW: Auto-assign creator
       clients: [],
     },
   });
@@ -69,15 +72,32 @@ export const CreateTaskDialog = ({
   const { mutate, isPending } = useCreateTaskMutation();
 
   const onSubmit = (values: CreateTaskFormData) => {
+    // ✅ NEW: Ensure creator is always in assignees
+    const finalAssignees = values.assignees || [];
+    if (user && !finalAssignees.includes(user._id)) {
+      finalAssignees.push(user._id);
+    }
+
     mutate(
       {
         projectId,
-        taskData: values,
+        taskData: {
+          ...values,
+          assignees: finalAssignees, // ✅ Use updated assignees
+        },
       },
       {
         onSuccess: () => {
           toast.success("Case created successfully");
-          form.reset();
+          form.reset({
+            title: "",
+            description: "",
+            status: "To Do",
+            priority: "Medium",
+            dueDate: "",
+            assignees: user ? [user._id] : [], // ✅ Reset with creator auto-assigned
+            clients: [],
+          });
           onOpenChange(false);
         },
         onError: (error: any) => {
@@ -88,23 +108,11 @@ export const CreateTaskDialog = ({
       }
     );
   };
-  //   const navigate = useNavigate();
-  //   const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
 
-  // const handleDeleteCase = () => {
-  //   if (!confirm("Are you sure you want to delete this case? This cannot be undone.")) return;
-
-  //   deleteProject(projectId, {
-  //     onSuccess: () => {
-  //       toast.success("Case deleted");
-  //       onOpenChange(false);
-  //       navigate("/dashboard");
-  //     },
-  //     onError: (err: any) => {
-  //       toast.error(err?.response?.data?.message || "Delete failed");
-  //     },
-  //   });
-  // };
+  // ✅ NEW: Filter out current user from dropdown options
+  const availableMembers = projectMembers.filter(
+    (member) => member.user._id !== user?._id
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,10 +293,13 @@ export const CreateTaskDialog = ({
                                 ) : selectedMembers.length <= 2 ? (
                                   selectedMembers
                                     .map((m) => {
+                                      if (m === user?._id) {
+                                        return "You"; // ✅ Show "You" for current user
+                                      }
                                       const member = projectMembers.find(
                                         (wm) => wm.user._id === m
                                       );
-                                      return `${member?.user.name}`;
+                                      return member?.user.name || "Unknown";
                                     })
                                     .join(", ")
                                 ) : (
@@ -302,9 +313,24 @@ export const CreateTaskDialog = ({
                               align="start"
                             >
                               <div className="flex flex-col gap-2">
-                                {projectMembers.map((member) => {
+                                {/* ✅ NEW: Show current user first (disabled) */}
+                                {user && (
+                                  <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
+                                    <Checkbox
+                                      checked={true}
+                                      disabled={true}
+                                      id={`creator-${user._id}`}
+                                    />
+                                    <span className="truncate flex-1 font-medium">
+                                      You (Creator) - Auto-assigned
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* ✅ Show other members (excluding current user) */}
+                                {availableMembers.map((member) => {
                                   const selectedMember = selectedMembers.find(
-                                    (m) => m === member.user?._id
+                                    (m) => m === member.user._id
                                   );
                                   return (
                                     <div
@@ -317,7 +343,6 @@ export const CreateTaskDialog = ({
                                           if (checked) {
                                             field.onChange([
                                               ...selectedMembers,
-
                                               member.user._id,
                                             ]);
                                           } else {
@@ -376,7 +401,7 @@ export const CreateTaskDialog = ({
                                     })
                                     .join(", ")
                                 ) : (
-                                  `${selectedMembers.length} assignees selected`
+                                  `${selectedMembers.length} clients selected`
                                 )}
                               </Button>
                             </PopoverTrigger>
@@ -388,7 +413,7 @@ export const CreateTaskDialog = ({
                               <div className="flex flex-col gap-2">
                                 {projectMembers.map((member) => {
                                   const selectedMember = selectedMembers.find(
-                                    (m) => m === member.user?._id
+                                    (m) => m === member.user._id
                                   );
                                   return (
                                     <div
@@ -401,7 +426,6 @@ export const CreateTaskDialog = ({
                                           if (checked) {
                                             field.onChange([
                                               ...selectedMembers,
-
                                               member.user._id,
                                             ]);
                                           } else {
@@ -412,7 +436,7 @@ export const CreateTaskDialog = ({
                                             );
                                           }
                                         }}
-                                        id={`member-${member.user._id}`}
+                                        id={`client-${member.user._id}`}
                                       />
                                       <span className="truncate flex-1">
                                         {member.user.name}

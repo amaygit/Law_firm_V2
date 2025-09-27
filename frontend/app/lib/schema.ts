@@ -50,7 +50,7 @@ export const projectSchema = z.object({
         role: z.enum(["manager", "contributor", "viewer"]),
       })
     )
-    .optional(),
+    .min(0, "Creator will be automatically assigned"),
   tags: z.string().optional(),
 });
 
@@ -60,7 +60,9 @@ export const createTaskSchema = z.object({
   status: z.enum(["To Do", "In Progress", "Done"]),
   priority: z.enum(["Low", "Medium", "High"]),
   dueDate: z.string().min(1, "Due date is required"),
-  assignees: z.array(z.string()).min(1, "At least one assignee is required"),
+  assignees: z
+    .array(z.string())
+    .min(0, "Creator will be automatically assigned"),
   clients: z.array(z.string()).optional(),
 });
 export const inviteMemberSchema = z.object({
@@ -68,25 +70,28 @@ export const inviteMemberSchema = z.object({
   // role: z.enum(["admin", "member", "viewer"]),
 });
 export const eventSchema = z.object({
-  title: z.string().min(1, "Event title is required").max(100, "Title too long"),
+  title: z
+    .string()
+    .min(1, "Event title is required")
+    .max(100, "Title too long"),
   description: z.string().optional(),
   dateTime: z.string().min(1, "Date and time is required"),
   phoneNumbers: z
     .array(
-      z.string()
+      z
+        .string()
         .min(10, "Phone number must be at least 10 digits")
         .regex(/^[\+]?[0-9\s\-\(\)]+$/, "Please enter a valid phone number")
     )
     .min(1, "At least one phone number is required")
     .max(2, "Maximum 2 phone numbers allowed")
-    .refine(
-      (numbers) => {
-        // Remove duplicates and check for unique numbers
-        const uniqueNumbers = [...new Set(numbers.map(n => n.replace(/\D/g, "")))];
-        return uniqueNumbers.length === numbers.length;
-      },
-      "Phone numbers must be unique"
-    ),
+    .refine((numbers) => {
+      // Remove duplicates and check for unique numbers
+      const uniqueNumbers = [
+        ...new Set(numbers.map((n) => n.replace(/\D/g, ""))),
+      ];
+      return uniqueNumbers.length === numbers.length;
+    }, "Phone numbers must be unique"),
 });
 
 export type EventFormData = z.infer<typeof eventSchema>;

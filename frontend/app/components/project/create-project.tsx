@@ -37,6 +37,7 @@ import { Calendar } from "../ui/calendar";
 import { Checkbox } from "../ui/checkbox";
 import { UseCreateProject } from "@/hooks/use-project";
 import { toast } from "sonner";
+import { useAuth } from "@/provider/auth-context"; // ✅ NEW: Import auth context
 
 interface CreateProjectDialogProps {
   isOpen: boolean;
@@ -53,6 +54,8 @@ export const CreateProjectDialog = ({
   workspaceId,
   workspaceMembers,
 }: CreateProjectDialogProps) => {
+  const { user } = useAuth(); // ✅ NEW: Get current user
+
   const form = useForm<CreateProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -61,24 +64,51 @@ export const CreateProjectDialog = ({
       status: ProjectStatus.FILED,
       startDate: "",
       dueDate: "",
-      members: [],
+      members: user ? [{ user: user._id, role: "manager" }] : [], // ✅ NEW: Auto-assign creator as manager
       tags: undefined,
     },
   });
+
   const { mutate, isPending } = UseCreateProject();
 
   const onSubmit = (values: CreateProjectFormData) => {
     if (!workspaceId) return;
 
+    // ✅ NEW: Ensure creator is always in members as manager
+    const finalMembers = values.members || [];
+    if (user) {
+      const creatorExists = finalMembers.some(
+        (member) => member.user === user._id
+      );
+
+      if (!creatorExists) {
+        finalMembers.push({
+          user: user._id,
+          role: "manager",
+        });
+      }
+    }
+
     mutate(
       {
-        projectData: values,
+        projectData: {
+          ...values,
+          members: finalMembers, // ✅ Use updated members
+        },
         workspaceId,
       },
       {
         onSuccess: () => {
           toast.success("Case created successfully");
-          form.reset();
+          form.reset({
+            title: "",
+            description: "",
+            status: ProjectStatus.FILED,
+            startDate: "",
+            dueDate: "",
+            members: user ? [{ user: user._id, role: "manager" }] : [], // ✅ Reset with creator auto-assigned
+            tags: undefined,
+          });
           onOpenChange(false);
         },
         onError: (error: any) => {
@@ -89,6 +119,11 @@ export const CreateProjectDialog = ({
       }
     );
   };
+
+  // ✅ NEW: Filter out current user from dropdown options
+  const availableMembers = workspaceMembers.filter(
+    (member) => member.user._id !== user?._id
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -280,13 +315,29 @@ export const CreateProjectDialog = ({
                                 Select Members
                               </span>
                             ) : selectedMembers.length <= 2 ? (
-                              selectedMembers.map((m) => {
-                                const member = workspaceMembers.find(
-                                  (wm) => wm.user._id === m.user
-                                );
-
-                                return `${member?.user.name} (${member?.role})`;
-                              })
+                              selectedMembers
+                                .map((m) => {
+                                  if (m.user === user?._id) {
+                                    return `You (${
+                                      m.role === "manager"
+                                        ? "Lawyer"
+                                        : m.role === "contributor"
+                                        ? "Sublawyer"
+                                        : "Client"
+                                    })`; // ✅ Show "You" for current user
+                                  }
+                                  const member = workspaceMembers.find(
+                                    (wm) => wm.user._id === m.user
+                                  );
+                                  const roleDisplay =
+                                    m.role === "manager"
+                                      ? "Lawyer"
+                                      : m.role === "contributor"
+                                      ? "Sublawyer"
+                                      : "Client";
+                                  return `${member?.user.name} (${roleDisplay})`;
+                                })
+                                .join(", ")
                             ) : (
                               `${selectedMembers.length} members selected`
                             )}
@@ -297,7 +348,28 @@ export const CreateProjectDialog = ({
                           align="start"
                         >
                           <div className="flex flex-col gap-2">
-                            {workspaceMembers.map((member) => {
+                            {/* ✅ NEW: Show current user first (disabled) */}
+                            {user && (
+                              <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
+                                <Checkbox
+                                  checked={true}
+                                  disabled={true}
+                                  id={`creator-${user._id}`}
+                                />
+                                <span className="truncate flex-1 font-medium">
+                                  You (Creator) - Auto-assigned as Lawyer
+                                </span>
+                                {/* Show role selector for creator but set to manager by default */}
+                                <Select value="manager" disabled={true}>
+                                  <SelectTrigger className="w-20">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </Select>
+                              </div>
+                            )}
+
+                            {/* ✅ Show other members (excluding current user) */}
+                            {availableMembers.map((member) => {
                               const selectedMember = selectedMembers.find(
                                 (m) => m.user === member.user._id
                               );
