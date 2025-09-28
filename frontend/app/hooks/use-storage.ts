@@ -49,3 +49,26 @@ export const useRecordFileUpload = () => {
     },
   });
 };
+export const useStorageLimitChecker = () => {
+  const { mutateAsync: checkLimit } = useCheckStorageLimit();
+
+  const checkStorageBeforeUpload = async (fileSize: number, taskId: string) => {
+    try {
+      const result = await checkLimit({ fileSize, taskId });
+      return { allowed: true, data: result };
+    } catch (error: any) {
+      if (error.response?.status === 413) {
+        const errorData = error.response.data;
+        return {
+          allowed: false,
+          error: errorData.message,
+          availableMB: errorData.availableMB,
+          requestedMB: errorData.requestedMB,
+        };
+      }
+      throw error;
+    }
+  };
+
+  return { checkStorageBeforeUpload };
+};
