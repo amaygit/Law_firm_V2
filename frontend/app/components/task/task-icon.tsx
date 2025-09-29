@@ -14,6 +14,7 @@ import {
   Upload,
   UserMinus,
   UserPlus,
+  Trash2,
 } from "lucide-react";
 
 export const getActivityIcon = (action: ActionType) => {
@@ -95,6 +96,12 @@ export const getActivityIcon = (action: ActionType) => {
       return (
         <div className="bg-blue-600/10 p-2 rounded-md">
           <Upload className="h-5 w-5 text-blue-600 rounded-full" />
+        </div>
+      );
+    case "removed_attachment":
+      return (
+        <div className="bg-red-600/10 p-2 rounded-md">
+          <Trash2 className="h-5 w-5 text-red-600 rounded-full" />
         </div>
       );
     default:

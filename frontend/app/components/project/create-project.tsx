@@ -142,14 +142,32 @@ export const CreateProjectDialog = ({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Case Title</FormLabel>
+                  <FormLabel>Case Type</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Case Title" />
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Case Title" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Civil Case">Civil Case</SelectItem>
+                        <SelectItem value="Criminal Cases">
+                          Criminal Cases
+                        </SelectItem>
+                        <SelectItem value="Corporate Cases">
+                          Corporate Cases
+                        </SelectItem>
+                        <SelectItem value="Constitutional, Administrative & Public Interest">
+                          Constitutional, Administrative & Public Interest
+                        </SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="description"

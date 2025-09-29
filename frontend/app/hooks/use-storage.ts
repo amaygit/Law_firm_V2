@@ -1,3 +1,5 @@
+// frontend/app/hooks/use-storage.ts - UPDATED with limit checking
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchData, postData } from "@/lib/fetch-util";
 
@@ -15,10 +17,13 @@ export const useStorageUsage = () => {
   return useQuery<{ usage: StorageUsage }>({
     queryKey: ["storage-usage"],
     queryFn: () => fetchData("/storage/usage"),
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 30000, // ✅ Changed to 30 seconds to reduce load
+    staleTime: 10000, // ✅ Consider data fresh for 10 seconds
+    refetchOnWindowFocus: false, // ✅ Don't refetch on window focus
   });
 };
 
+// ✅ NEW: Hook to check if upload is allowed
 export const useCheckStorageLimit = () => {
   return useMutation({
     mutationFn: (data: { fileSize: number; taskId: string }) =>
@@ -49,6 +54,8 @@ export const useRecordFileUpload = () => {
     },
   });
 };
+
+// ✅ NEW: Utility function to check storage before upload
 export const useStorageLimitChecker = () => {
   const { mutateAsync: checkLimit } = useCheckStorageLimit();
 

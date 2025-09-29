@@ -276,7 +276,11 @@ const TaskDetails = () => {
           <TaskActivity resourceId={task._id} />
 
           {/* ✅ UPDATED: Use new TaskFiles component */}
-          <TaskFiles taskId={task._id} refreshKey={filesRefreshKey} />
+          <TaskFiles
+            taskId={task._id}
+            refreshKey={filesRefreshKey}
+            isClient={isClient}
+          />
         </div>
       </div>
     </div>

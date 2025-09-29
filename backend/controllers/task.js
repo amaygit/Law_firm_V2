@@ -6,6 +6,147 @@ import Project from "../models/project.js";
 import Task from "../models/task.js";
 import Workspace from "../models/workspace.js";
 
+// backend/controllers/task.js - Add this function
+
+import AWS from "aws-sdk"; // ✅ You'll need to install: npm install aws-sdk
+
+// Configure AWS SDK
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || "eu-north-1",
+});
+
+export const deleteTaskFile = async (req, res) => {
+  try {
+    const { taskId, fileKey } = req.params;
+    const userId = req.user._id;
+
+    // Decode the file key
+    const decodedFileKey = decodeURIComponent(fileKey);
+
+    console.log(
+      `Attempting to delete file: ${decodedFileKey} from task: ${taskId}`
+    );
+
+    // Find the task
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // Get the project and check permissions
+    const project = await Project.findById(task.project);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    // Check if user is a member of the project
+    const userMember = project.members.find(
+      (member) => member.user.toString() === userId.toString()
+    );
+
+    if (!userMember) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete files from this task",
+      });
+    }
+
+    // ✅ Check user role - clients (viewers) shouldn't be able to delete files
+    if (userMember.role === "viewer") {
+      // assuming "viewer" = client
+      return res.status(403).json({
+        success: false,
+        message: "Clients are not authorized to delete files",
+      });
+    }
+
+    // Find the attachment to delete
+    const attachmentIndex = task.attachments.findIndex((attachment) => {
+      const fileName = attachment.fileName;
+
+      // Check different possible formats
+      return (
+        fileName === decodedFileKey ||
+        fileName === fileKey ||
+        `${taskId}$${fileName}` === decodedFileKey ||
+        attachment.fileUrl.includes(decodedFileKey)
+      );
+    });
+
+    if (attachmentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found in task attachments",
+      });
+    }
+
+    const attachment = task.attachments[attachmentIndex];
+
+    // ✅ Delete from S3 first
+    try {
+      const bucketName = process.env.S3_BUCKET_NAME; // You'll need to set this
+
+      if (!bucketName) {
+        throw new Error("S3_BUCKET_NAME not configured");
+      }
+
+      console.log(
+        `Deleting from S3 bucket: ${bucketName}, key: ${decodedFileKey}`
+      );
+
+      const deleteParams = {
+        Bucket: bucketName,
+        Key: decodedFileKey,
+      };
+
+      const result = await s3.deleteObject(deleteParams).promise();
+      console.log("S3 deletion result:", result);
+    } catch (s3Error) {
+      console.error("S3 deletion failed:", s3Error);
+      // Continue with database deletion even if S3 fails
+      // You might want to handle this differently based on your needs
+    }
+
+    // Remove the attachment from the task
+    const deletedAttachment = task.attachments[attachmentIndex];
+    task.attachments.splice(attachmentIndex, 1);
+    await task.save();
+
+    // ✅ Record activity
+    try {
+      await recordActivity(userId, "removed_attachment", "Task", taskId, {
+        description: `removed file ${deletedAttachment.fileName}`,
+      });
+    } catch (activityError) {
+      console.error("Failed to record activity:", activityError);
+    }
+
+    res.json({
+      success: true,
+      message: "File deleted successfully",
+      deletedFile: {
+        fileName: deletedAttachment.fileName,
+        fileSize: deletedAttachment.fileSize,
+      },
+    });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete file",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 const createTask = async (req, res) => {
   try {
     const { projectId } = req.params;

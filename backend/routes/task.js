@@ -25,6 +25,7 @@ import {
   addTaskHearing,
   addInternalComment,
   getInternalCommentsByTaskId,
+  deleteTaskFile,
 } from "../controllers/task.js";
 import authMiddleware from "../middleware/auth-middleware.js";
 
@@ -222,5 +223,15 @@ router.get(
   }),
   getInternalCommentsByTaskId
 );
-
+router.delete(
+  "/:taskId/files/:fileKey",
+  authMiddleware,
+  validateRequest({
+    params: z.object({
+      taskId: z.string(),
+      fileKey: z.string(),
+    }),
+  }),
+  deleteTaskFile
+);
 export default router;
