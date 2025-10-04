@@ -9,7 +9,10 @@ import userRoutes from "./user.js";
 import aiRoutes from "./ai.js"; // 👈 Import AI Routes here
 import storageRoutes from "./storage.js";
 import eventRoutes from "./event.js";
+import aiChatRoutes from "./ai-chat.js";
 const router = express.Router();
+
+router.use(express.json());
 
 router.use("/auth", authRoutes);
 router.use("/workspaces", workspaceRoutes);
@@ -19,5 +22,5 @@ router.use("/users", userRoutes);
 router.use("/ai", aiRoutes); // 👈 Mount AI route here => /api-v1/ai/ask
 router.use("/storage", storageRoutes);
 router.use("/events", eventRoutes);
-
+router.use("/ai", aiChatRoutes);
 export default router;
