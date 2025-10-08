@@ -47,11 +47,11 @@ export const SideBarComponent = ({
       href: "/my-tasks",
       icon: ListCheck,
     },
-    {
-      title: "Members",
-      href: "/members",
-      icon: Users,
-    },
+    // {
+    //   title: "Members",
+    //   href: "/members",
+    //   icon: Users,
+    // },
     // {
     //     title: "Achieved",
     //      href: currentWorkspace ? `/dashboard/${currentWorkspace._id}/achived` : "/achieved",
@@ -62,18 +62,18 @@ export const SideBarComponent = ({
       href: "/events",
       icon: Calendar, // Import from lucide-react
     },
-    {
-      title: "Law AI",
-      icon: Bot,
-      href: "/dashboard/ai", // 👈 this is your new route
-    },
-    {
-      title: "Settings",
-      href: currentWorkspace
-        ? `/workspaces/${currentWorkspace._id}/settings`
-        : "/settings",
-      icon: Settings,
-    },
+    // {
+    //   title: "Law AI",
+    //   icon: Bot,
+    //   href: "/dashboard/ai", // 👈 this is your new route
+    // },
+    // {
+    //   title: "Settings",
+    //   href: currentWorkspace
+    //     ? `/workspaces/${currentWorkspace._id}/settings`
+    //     : "/settings",
+    //   icon: Settings,
+    // },
   ];
   return (
     <div

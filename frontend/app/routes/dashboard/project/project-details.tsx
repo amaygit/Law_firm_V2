@@ -34,7 +34,7 @@ const ProjectDetails = () => {
     };
     isLoading: boolean;
   };
-const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
+  const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
   if (isLoading)
     return (
       <div>
@@ -50,24 +50,26 @@ const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
       `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`
     );
   };
-// const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
+  // const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
 
-const handleDeleteProject = () => {
-  if (!projectId) return;
+  const handleDeleteProject = () => {
+    if (!projectId) return;
 
-  const confirmDelete = confirm("Are you sure you want to delete this case? This action cannot be undone.");
-  if (!confirmDelete) return;
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this case? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
 
-  deleteProject(projectId, {
-    onSuccess: () => {
-      toast.success("Case deleted successfully.");
-      navigate(`/workspaces/${workspaceId}`);
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to delete case.");
-    },
-  });
-};
+    deleteProject(projectId, {
+      onSuccess: () => {
+        toast.success("Case deleted successfully.");
+        navigate(`/workspaces/${workspaceId}`);
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || "Failed to delete case.");
+      },
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -93,15 +95,18 @@ const handleDeleteProject = () => {
             </span>
           </div>
 
-          <Button onClick={() => setIsCreateTask(true)}>Add Case Milestone</Button>
-          <Button variant="destructive" onClick={handleDeleteProject} disabled={isDeleting}>
-  {isDeleting ? "Deleting..." : "Delete Entire Case Milestone"}
-</Button>
-
+          <Button onClick={() => setIsCreateTask(true)}>Add Case</Button>
+          <Button
+            variant="destructive"
+            onClick={handleDeleteProject}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete ALL Cases"}
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between"> 
+      <div className="flex items-center justify-between">
         <Tabs defaultValue="all" className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <TabsList>
@@ -126,14 +131,16 @@ const handleDeleteProject = () => {
               <span className="text-muted-foreground">Status:</span>
               <div>
                 <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "To Do").length} Filed Cases
+                  {tasks.filter((task) => task.status === "To Do").length} Filed
+                  Cases
                 </Badge>
                 <Badge variant="outline" className="bg-background">
                   {tasks.filter((task) => task.status === "In Progress").length}{" "}
                   Case In Progress
                 </Badge>
                 <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "Done").length} Closed Cases
+                  {tasks.filter((task) => task.status === "Done").length} Closed
+                  Cases
                 </Badge>
               </div>
             </div>
