@@ -129,7 +129,7 @@ const TaskDetails = () => {
                 size="sm"
               >
                 <Bot className="mr-2 h-4 w-4" />
-                AI Assistant
+                SAJNA
               </Button>
               <Button
                 variant={"outline"}
