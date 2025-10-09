@@ -47,11 +47,11 @@ export const SideBarComponent = ({
       href: "/my-tasks",
       icon: ListCheck,
     },
-    // {
-    //   title: "Members",
-    //   href: "/members",
-    //   icon: Users,
-    // },
+    {
+      title: "Members",
+      href: "/members",
+      icon: Users,
+    },
     // {
     //     title: "Achieved",
     //      href: currentWorkspace ? `/dashboard/${currentWorkspace._id}/achived` : "/achieved",
