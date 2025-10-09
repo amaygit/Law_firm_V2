@@ -9,9 +9,10 @@ export const BackButton = () => {
       variant="outline"
       size="sm"
       onClick={() => navigate(-1)}
-      className="p-4 mr-4"
+      className="p-4 mr-4 text-left" // Align the button to the left
     >
-      ← Back
+      <span className="md:inline hidden">← Back</span>
+      <span className="md:hidden">←</span>
     </Button>
   );
 };

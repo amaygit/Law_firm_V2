@@ -1,9 +1,8 @@
 import { useUpdateTaskDescriptionMutation } from "@/hooks/use-task";
-import { Edit } from "lucide-react";
+import { Edit, Check, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 
 export const TaskDescription = ({
@@ -18,6 +17,7 @@ export const TaskDescription = ({
   const [isEditing, setIsEditing] = useState(false);
   const [newDescription, setNewDescription] = useState(description);
   const { mutate, isPending } = useUpdateTaskDescriptionMutation();
+
   const updateDescription = () => {
     mutate(
       { taskId, description: newDescription },
@@ -27,7 +27,7 @@ export const TaskDescription = ({
           toast.success("Description updated successfully");
         },
         onError: (error: any) => {
-          const errorMessage = error.response.data.message;
+          const errorMessage = error.response?.data?.message || "Update failed";
           toast.error(errorMessage);
           console.log(error);
         },
@@ -35,36 +35,58 @@ export const TaskDescription = ({
     );
   };
 
+  const handleCancel = () => {
+    setIsEditing(false);
+    setNewDescription(description);
+  };
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-start gap-2 flex-wrap md:flex-nowrap w-full">
       {isEditing ? (
         <Textarea
-          className="w-full min-w-3xl"
+          className="w-full flex-grow min-w-0 resize-y text-sm md:text-base"
+          rows={4}
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
           disabled={isPending}
+          autoFocus
         />
       ) : (
-        <div className="text-sm md:text-base text-pretty flex-1 text-muted-foreground">
-          {description}
+        <div className="text-sm md:text-base text-pretty text-muted-foreground flex-grow break-words">
+          {description || "No description provided."}
         </div>
       )}
 
       {!isClient &&
         (isEditing ? (
-          <Button
-            className="py-0"
-            size="sm"
-            onClick={updateDescription}
-            disabled={isPending}
-          >
-            Save
-          </Button>
+          <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
+            <Button
+              size="icon"
+              onClick={updateDescription}
+              disabled={isPending}
+              className="p-1"
+            >
+              <Check className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isPending}
+              className="p-1"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
         ) : (
-          <Edit
-            className="size-3 cursor-pointer"
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={() => setIsEditing(true)}
-          />
+            className="p-1 shrink-0 mt-1 md:mt-0"
+          >
+            <Edit className="size-4 text-muted-foreground" />
+          </Button>
         ))}
     </div>
   );

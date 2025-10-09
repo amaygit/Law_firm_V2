@@ -3,6 +3,7 @@ import { ProjectStatus, type MemberProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useState } from "react"; // ✅ NEW
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ import { Calendar } from "../ui/calendar";
 import { Checkbox } from "../ui/checkbox";
 import { UseCreateProject } from "@/hooks/use-project";
 import { toast } from "sonner";
-import { useAuth } from "@/provider/auth-context"; // ✅ NEW: Import auth context
+import { useAuth } from "@/provider/auth-context";
 
 interface CreateProjectDialogProps {
   isOpen: boolean;
@@ -54,7 +55,10 @@ export const CreateProjectDialog = ({
   workspaceId,
   workspaceMembers,
 }: CreateProjectDialogProps) => {
-  const { user } = useAuth(); // ✅ NEW: Get current user
+  const { user } = useAuth();
+
+  // ✅ NEW: Control popover open state
+  const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
 
   const form = useForm<CreateProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -64,7 +68,7 @@ export const CreateProjectDialog = ({
       status: ProjectStatus.FILED,
       startDate: "",
       dueDate: "",
-      members: user ? [{ user: user._id, role: "manager" }] : [], // ✅ NEW: Auto-assign creator as manager
+      members: user ? [{ user: user._id, role: "manager" }] : [],
       tags: undefined,
     },
   });
@@ -74,7 +78,6 @@ export const CreateProjectDialog = ({
   const onSubmit = (values: CreateProjectFormData) => {
     if (!workspaceId) return;
 
-    // ✅ NEW: Ensure creator is always in members as manager
     const finalMembers = values.members || [];
     if (user) {
       const creatorExists = finalMembers.some(
@@ -93,7 +96,7 @@ export const CreateProjectDialog = ({
       {
         projectData: {
           ...values,
-          members: finalMembers, // ✅ Use updated members
+          members: finalMembers,
         },
         workspaceId,
       },
@@ -106,7 +109,7 @@ export const CreateProjectDialog = ({
             status: ProjectStatus.FILED,
             startDate: "",
             dueDate: "",
-            members: user ? [{ user: user._id, role: "manager" }] : [], // ✅ Reset with creator auto-assigned
+            members: user ? [{ user: user._id, role: "manager" }] : [],
             tags: undefined,
           });
           onOpenChange(false);
@@ -120,14 +123,13 @@ export const CreateProjectDialog = ({
     );
   };
 
-  // ✅ NEW: Filter out current user from dropdown options
   const availableMembers = workspaceMembers.filter(
     (member) => member.user._id !== user?._id
   );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Case</DialogTitle>
           <DialogDescription>
@@ -222,6 +224,7 @@ export const CreateProjectDialog = ({
                       <Popover modal={true}>
                         <PopoverTrigger asChild>
                           <Button
+                            type="button"
                             variant={"outline"}
                             className={
                               "w-full justify-start text-left font-normal" +
@@ -264,6 +267,7 @@ export const CreateProjectDialog = ({
                       <Popover modal={true}>
                         <PopoverTrigger asChild>
                           <Button
+                            type="button"
                             variant={"outline"}
                             className={
                               "w-full justify-start text-left font-normal" +
@@ -322,9 +326,14 @@ export const CreateProjectDialog = ({
                   <FormItem>
                     <FormLabel>Members</FormLabel>
                     <FormControl>
-                      <Popover>
+                      <Popover
+                        open={membersPopoverOpen}
+                        onOpenChange={setMembersPopoverOpen}
+                        modal={true}
+                      >
                         <PopoverTrigger asChild>
                           <Button
+                            type="button"
                             variant={"outline"}
                             className="w-full justify-start text-left font-normal min-h-11"
                           >
@@ -342,7 +351,7 @@ export const CreateProjectDialog = ({
                                         : m.role === "contributor"
                                         ? "Sublawyer"
                                         : "Client"
-                                    })`; // ✅ Show "You" for current user
+                                    })`;
                                   }
                                   const member = workspaceMembers.find(
                                     (wm) => wm.user._id === m.user
@@ -362,45 +371,47 @@ export const CreateProjectDialog = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent
-                          className="w-full max-w-60 overflow-y-auto"
+                          className="w-80 max-h-96 overflow-y-auto p-2"
                           align="start"
                         >
                           <div className="flex flex-col gap-2">
-                            {/* ✅ NEW: Show current user first (disabled) */}
                             {user && (
-                              <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
+                              <div className="flex items-center gap-2 p-2 border rounded bg-blue-50">
                                 <Checkbox
                                   checked={true}
                                   disabled={true}
                                   id={`creator-${user._id}`}
                                 />
-                                <span className="truncate flex-1 font-medium">
-                                  You (Creator) - Auto-assigned as Lawyer
-                                </span>
-                                {/* Show role selector for creator but set to manager by default */}
-                                <Select value="manager" disabled={true}>
-                                  <SelectTrigger className="w-20">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </Select>
+                                <label
+                                  htmlFor={`creator-${user._id}`}
+                                  className="truncate flex-1 font-medium text-sm"
+                                >
+                                  You (Owner - Lawyer)
+                                </label>
                               </div>
                             )}
 
-                            {/* ✅ Show other members (excluding current user) */}
                             {availableMembers.map((member) => {
                               const selectedMember = selectedMembers.find(
                                 (m) => m.user === member.user._id
                               );
+                              const isSelected = !!selectedMember;
 
                               return (
                                 <div
                                   key={member._id}
-                                  className="flex items-center gap-2 p-2 border rounded"
+                                  className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50"
                                 >
-                                  <Checkbox
-                                    checked={!!selectedMember}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
+                                  <div
+                                    className="flex items-center gap-2 flex-1 cursor-pointer"
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        field.onChange(
+                                          selectedMembers.filter(
+                                            (m) => m.user !== member.user._id
+                                          )
+                                        );
+                                      } else {
                                         field.onChange([
                                           ...selectedMembers,
                                           {
@@ -408,19 +419,20 @@ export const CreateProjectDialog = ({
                                             role: "contributor",
                                           },
                                         ]);
-                                      } else {
-                                        field.onChange(
-                                          selectedMembers.filter(
-                                            (m) => m.user !== member.user._id
-                                          )
-                                        );
                                       }
                                     }}
-                                    id={`member-${member.user._id}`}
-                                  />
-                                  <span className="truncate flex-1">
-                                    {member.user.name}
-                                  </span>
+                                  >
+                                    <Checkbox
+                                      checked={isSelected}
+                                      id={`member-${member.user._id}`}
+                                    />
+                                    <label
+                                      htmlFor={`member-${member.user._id}`}
+                                      className="truncate flex-1 text-sm cursor-pointer"
+                                    >
+                                      {member.user.name}
+                                    </label>
+                                  </div>
 
                                   {selectedMember && (
                                     <Select
@@ -441,25 +453,31 @@ export const CreateProjectDialog = ({
                                         );
                                       }}
                                     >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select Role" />
+                                      <SelectTrigger className="w-28 h-8">
+                                        <SelectValue placeholder="Role" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="manager">
+                                        {/* <SelectItem value="manager">
                                           Lawyer
-                                        </SelectItem>
+                                        </SelectItem> */}
                                         <SelectItem value="contributor">
                                           Sublawyer
                                         </SelectItem>
-                                        <SelectItem value="viewer">
+                                        {/* <SelectItem value="viewer">
                                           Client
-                                        </SelectItem>
+                                        </SelectItem> */}
                                       </SelectContent>
                                     </Select>
                                   )}
                                 </div>
                               );
                             })}
+
+                            {availableMembers.length === 0 && (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                No other members available
+                              </div>
+                            )}
                           </div>
                         </PopoverContent>
                       </Popover>

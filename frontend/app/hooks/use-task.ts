@@ -1,5 +1,5 @@
 import type { CreateTaskFormData } from "@/components/task/create-task-dialog";
-import { fetchData, postData, updateData } from "@/lib/fetch-util";
+import { fetchData, postData, updateData, deleteData } from "@/lib/fetch-util";
 import type { Task, TaskPriority, TaskStatus } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -310,5 +310,23 @@ export const useGetInternalCommentsByTaskIdQuery = (taskId: string) => {
   return useQuery({
     queryKey: ["internal-comments", taskId],
     queryFn: () => fetchData(`/tasks/${taskId}/internal-comments`),
+  });
+};
+export const useDeleteTaskMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (taskId: string) => deleteData(`/tasks/${taskId}`),
+    onSuccess: (data: any) => {
+      // Invalidate project queries to refresh task list
+      if (data.deletedTask) {
+        queryClient.invalidateQueries({
+          queryKey: ["project"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["my-tasks"],
+        });
+      }
+    },
   });
 };

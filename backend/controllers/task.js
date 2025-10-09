@@ -1035,6 +1035,124 @@ export const addTaskAttachment = async (req, res) => {
   }
 };
 
+export const deleteTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const userId = req.user._id;
+
+    // Find the task and populate createdBy
+    const task = await Task.findById(taskId).populate("createdBy", "_id");
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Case not found",
+      });
+    }
+
+    // Get the project and check permissions
+    const project = await Project.findById(task.project);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    // Check if user is project owner or task creator
+    // Handle both project.owner and task.createdBy being potentially undefined
+    let isOwner = false;
+    if (project.owner) {
+      const ownerId =
+        typeof project.owner === "object" && project.owner._id
+          ? project.owner._id.toString()
+          : project.owner.toString();
+      isOwner = ownerId === userId.toString();
+    }
+
+    // Handle both cases: createdBy as ObjectId or populated object
+    let isCreator = false;
+    if (task.createdBy) {
+      const creatorId =
+        typeof task.createdBy === "object" && task.createdBy._id
+          ? task.createdBy._id.toString()
+          : task.createdBy.toString();
+      isCreator = creatorId === userId.toString();
+    }
+
+    if (!isOwner && !isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only project owner or task creator can delete this case",
+      });
+    }
+
+    // Delete all related data
+    // 1. Delete all comments
+    await Comment.deleteMany({ task: taskId });
+
+    // 2. Delete all internal comments
+    await InternalComment.deleteMany({ task: taskId });
+
+    // 3. Delete all activity logs
+    await ActivityLog.deleteMany({ resourceId: taskId });
+
+    // 4. Delete files from S3 if any
+    if (task.attachments && task.attachments.length > 0) {
+      try {
+        const bucketName = process.env.S3_BUCKET_NAME;
+        if (bucketName) {
+          for (const attachment of task.attachments) {
+            const fileKey = attachment.fileName;
+            await s3
+              .deleteObject({
+                Bucket: bucketName,
+                Key: `${taskId}$${fileKey}`,
+              })
+              .promise();
+          }
+        }
+      } catch (s3Error) {
+        console.error("Error deleting files from S3:", s3Error);
+        // Continue with task deletion even if S3 deletion fails
+      }
+    }
+
+    // 5. Remove task reference from project
+    project.tasks = project.tasks.filter(
+      (t) => t.toString() !== taskId.toString()
+    );
+    await project.save();
+
+    // 6. Delete the task
+    await Task.findByIdAndDelete(taskId);
+
+    // Record activity
+    try {
+      await recordActivity(userId, "deleted_task", "Project", project._id, {
+        description: `deleted case "${task.title}"`,
+      });
+    } catch (activityError) {
+      console.error("Failed to record activity:", activityError);
+    }
+
+    res.json({
+      success: true,
+      message: "Case deleted successfully",
+      deletedTask: {
+        _id: task._id,
+        title: task.title,
+      },
+    });
+  } catch (error) {
+    console.error("Error deleting task:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete case",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 export {
   createTask,
   getTaskById,

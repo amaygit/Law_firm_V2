@@ -57,7 +57,7 @@ export const InternalCommentSection = ({
 
   return (
     <div className="bg-card rounded-lg p-6 shadow-sm">
-      <h3 className="text-lg font-medium mb-4">Internal Comments</h3>
+      <h3 className="text-lg font-medium mb-4">Assignees Comments</h3>
 
       <ScrollArea className="h-[300px] mb-4">
         {internalComments?.length > 0 ? (
@@ -108,7 +108,7 @@ export const InternalCommentSection = ({
             disabled={!newComment.trim() || isPending}
             onClick={handleAddComment}
           >
-            Post Internal Comment
+            Add Assignees Comment
           </Button>
         </div>
       </div>

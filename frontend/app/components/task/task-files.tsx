@@ -278,7 +278,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
 
                 <div className="flex items-center gap-2 ml-2">
                   {/* Quick actions for non-clients */}
-                  {!isClient && (
+                  {/* {!isClient && (
                     <>
                       <Button
                         variant="ghost"
@@ -302,7 +302,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                         <Download className="h-4 w-4" />
                       </Button>
                     </>
-                  )}
+                  )} */}
 
                   {/* More options dropdown */}
                   <DropdownMenu>

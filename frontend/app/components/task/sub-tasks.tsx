@@ -59,11 +59,11 @@ export const SubTasksDetails = ({
 
   return (
     <div className="mb-6">
-      <h3 className="text-sm font-medium text-muted-foreground mb-0">
+      <h3 className="text-sm font-medium text-muted-foreground mb-0 mt-3">
         Case Milestone
       </h3>
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2">
         {subTasks.length > 0 ? (
           subTasks.map((subTask) => (
             <div key={subTask._id} className="flex items-center space-x-2">
