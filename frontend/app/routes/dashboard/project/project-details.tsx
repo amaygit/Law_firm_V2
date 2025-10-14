@@ -208,7 +208,8 @@ const ProjectDetails = () => {
         open={isCreateTask}
         onOpenChange={setIsCreateTask}
         projectId={projectId!}
-        projectMembers={project.members as any}
+        projectAssignees={project?.assignees || []} // ✅ Pass from project
+        projectClients={project?.clients || []}
       />
     </div>
   );

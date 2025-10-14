@@ -5,8 +5,17 @@ import Task from "../models/task.js";
 const createProject = async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const { title, description, status, startDate, dueDate, members, tags } =
-      req.body;
+    const {
+      title,
+      description,
+      status,
+      startDate,
+      dueDate,
+      members,
+      tags,
+      assignees, // ✅ NEW
+      clients, // ✅ NEW
+    } = req.body;
 
     const workspace = await Workspace.findById(workspaceId);
 
@@ -26,21 +35,25 @@ const createProject = async (req, res) => {
       });
     }
 
-    // ✅ NEW: Automatically add creator to members if not already included
+    // ✅ Automatically add creator to members if not already included
     const creatorId = req.user._id.toString();
     const finalMembers = members || [];
 
-    // Check if creator is already in the members list
     const creatorExists = finalMembers.some(
       (member) => member.user === creatorId
     );
 
-    // Add creator as manager if not already present
     if (!creatorExists) {
       finalMembers.push({
         user: creatorId,
-        role: "manager", // ✅ Auto-assign creator as manager
+        role: "manager",
       });
+    }
+
+    // ✅ NEW: Ensure creator is in assignees
+    const finalAssignees = assignees || [];
+    if (!finalAssignees.includes(creatorId)) {
+      finalAssignees.push(creatorId);
     }
 
     const newProject = await Project.create({
@@ -49,7 +62,9 @@ const createProject = async (req, res) => {
       status,
       startDate,
       dueDate,
-      members: finalMembers, // ✅ Use the updated members array
+      members: finalMembers,
+      assignees: finalAssignees, // ✅ NEW
+      clients: clients || [], // ✅ NEW
       tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
       workspace: workspaceId,
       createdBy: req.user._id,
@@ -68,7 +83,9 @@ const getProjectDetails = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(projectId)
+      .populate("assignees", "name profilePicture") // ✅ NEW
+      .populate("clients", "name profilePicture"); // ✅ NEW
 
     if (!project) {
       return res.status(404).json({
@@ -98,7 +115,10 @@ const getProjectDetails = async (req, res) => {
 const getProjectTasks = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const project = await Project.findById(projectId).populate("members.user");
+    const project = await Project.findById(projectId)
+      .populate("members.user")
+      .populate("assignees", "name profilePicture") // ✅ NEW
+      .populate("clients", "name profilePicture"); // ✅ NEW
 
     if (!project) {
       return res.status(404).json({
@@ -121,6 +141,7 @@ const getProjectTasks = async (req, res) => {
       isArchived: false,
     })
       .populate("assignees", "name profilePicture")
+      .populate("clients", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -134,6 +155,7 @@ const getProjectTasks = async (req, res) => {
     });
   }
 };
+
 const deleteProject = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -143,7 +165,6 @@ const deleteProject = async (req, res) => {
       return res.status(404).json({ message: "Case not found" });
     }
 
-    // Check if requester is a member
     const isMember = project.members.some(
       (member) => member.user.toString() === req.user._id.toString()
     );
@@ -151,15 +172,12 @@ const deleteProject = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // Remove project ref from workspace
     await Workspace.findByIdAndUpdate(project.workspace, {
       $pull: { projects: project._id },
     });
 
-    // Delete all tasks inside the project
     await Task.deleteMany({ project: projectId });
 
-    // Delete the project
     await project.deleteOne();
 
     return res.status(200).json({ message: "Case deleted successfully" });

@@ -1,58 +1,84 @@
-// backend/test-gemini-key.js
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import dotenv from "dotenv";
 
+// Load environment variables
 dotenv.config();
 
-console.log("Testing Gemini API Key...\n");
+// Test SMS function
+const testSMS = async () => {
+  console.log("🧪 Testing AWS SNS SMS Configuration...\n");
 
-const apiKey = process.env.GEMINI_API_KEY;
+  // 1. Check environment variables
+  console.log("1️⃣ Checking environment variables...");
+  if (!process.env.AWS_ACCESS_KEY_ID_SMS) {
+    console.error("❌ AWS_ACCESS_KEY_ID not found in .env");
+    return;
+  }
+  if (!process.env.AWS_SECRET_ACCESS_KEY_SMS) {
+    console.error("❌ AWS_SECRET_ACCESS_KEY not found in .env");
+    return;
+  }
+  console.log("✅ AWS credentials found\n");
 
-// Check if key exists
-if (!apiKey) {
-  console.error("❌ GEMINI_API_KEY not found in .env");
-  console.log("\nAdd this to backend/.env:");
-  console.log("GEMINI_API_KEY=AIzaSy...");
-  process.exit(1);
-}
+  // 2. Initialize SNS Client
+  console.log("2️⃣ Initializing AWS SNS Client...");
+  const snsClient = new SNSClient({
+    region: process.env.AWS_REGION || "ap-south-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID_SMS,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_SMS,
+    },
+  });
+  console.log("✅ SNS Client initialized\n");
 
-// Check key format
-if (!apiKey.startsWith("AIza")) {
-  console.error("❌ Invalid key format. Should start with 'AIza'");
-  console.log("Current key:", apiKey.substring(0, 10) + "...");
-  process.exit(1);
-}
+  // 3. Prompt for phone number
+  console.log("3️⃣ Test phone number:");
+  const testPhoneNumber = process.argv[2] || "+919799129167"; // Pass as argument or use default
+  console.log(`📱 Using: ${testPhoneNumber}\n`);
 
-console.log(
-  "✅ Key found:",
-  apiKey.substring(0, 10) + "..." + apiKey.substring(apiKey.length - 5)
-);
-
-// Test API call
-const test = async () => {
+  // 4. Send test SMS
+  console.log("4️⃣ Sending test SMS...");
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const message = `🧪 Test SMS from SAAJNA Legal
 
-    console.log("\nTesting API call...");
-    const result = await model.generateContent("Say hello in 3 words");
-    const response = await result.response;
-    const text = response.text();
+This is a test message to verify SMS functionality.
 
-    console.log("✅ API Key is VALID!");
-    console.log("Response:", text);
-    console.log("\n🎉 Your Gemini API is working correctly!");
+Time: ${new Date().toLocaleString("en-IN")}
+
+If you received this, SMS is working correctly! ✅`;
+
+    const params = {
+      Message: message,
+      PhoneNumber: testPhoneNumber,
+      MessageAttributes: {
+        "AWS.SNS.SMS.SMSType": {
+          DataType: "String",
+          StringValue: "Transactional",
+        },
+        "AWS.SNS.SMS.SenderID": {
+          DataType: "String",
+          StringValue: "SAAJNA",
+        },
+      },
+    };
+
+    const command = new PublishCommand(params);
+    const result = await snsClient.send(command);
+
+    console.log("✅ SMS sent successfully!");
+    console.log(`📬 Message ID: ${result.MessageId}`);
+    console.log(`\n💡 Check your phone: ${testPhoneNumber}`);
+    console.log("\n🎉 SMS configuration is working correctly!\n");
   } catch (error) {
-    console.error("\n❌ API Key is INVALID!");
-    console.error("Error:", error.message);
-    console.log("\n📝 Steps to fix:");
-    console.log("1. Go to: https://aistudio.google.com/app/apikey");
-    console.log("2. Create a new API key");
-    console.log("3. Copy the ENTIRE key (starts with AIza)");
-    console.log("4. Update backend/.env: GEMINI_API_KEY=AIza...");
-    console.log("5. Run this test again");
-    process.exit(1);
+    console.error("❌ Failed to send SMS:");
+    console.error(`Error: ${error.message}`);
+    console.error(`\nTroubleshooting:`);
+    console.error(`1. Check AWS credentials are correct`);
+    console.error(`2. Verify IAM user has SNS permissions`);
+    console.error(`3. Check phone number format (must start with +)`);
+    console.error(`4. Verify AWS region is correct\n`);
   }
 };
 
-test();
+// Run test
+testSMS();

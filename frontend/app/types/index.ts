@@ -47,6 +47,8 @@ export interface Project {
     user: User;
     role: "admin" | "member" | "owner" | "viewer";
   }[];
+  assignees: User[]; // ✅ NEW: Sublawyers assigned to project
+  clients: User[]; // ✅ NEW: Clients assigned to project
   createdAt: Date;
   updatedAt: Date;
   isArchived: Boolean;

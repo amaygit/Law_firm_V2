@@ -168,7 +168,9 @@ export const Header = ({
   // ✅ Check if we're on the dashboard page
   const isOnDashboard =
     location.pathname === "/dashboard" ||
-    location.pathname.startsWith("/dashboard/");
+    location.pathname.startsWith("/dashboard/") ||
+    location.pathname === "/members" ||
+    location.pathname.startsWith("/members/");
 
   const handleOnClick = (workspace: Workspace) => {
     onWorkspaceSelected(workspace);

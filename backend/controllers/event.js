@@ -1,10 +1,10 @@
 import Event from "../models/event.js";
 import {
-  scheduleWhatsAppMessage,
-  cancelScheduledMessage,
-} from "../libs/whatsapp-scheduler.js";
+  scheduleSMSReminder,
+  cancelScheduledSMS,
+} from "../libs/sms-scheduler.js";
 
-// Create event (workspace independent)
+// Create event with SMS reminder
 export const createEvent = async (req, res) => {
   try {
     const { title, description, dateTime, phoneNumbers } = req.body;
@@ -55,56 +55,23 @@ export const createEvent = async (req, res) => {
       phoneNumbers: cleanedPhoneNumbers,
     });
 
-    // Schedule WhatsApp messages
+    // Schedule SMS reminders
     try {
-      const jobId = await scheduleWhatsAppMessage(newEvent);
+      const jobId = await scheduleSMSReminder(newEvent);
       newEvent.reminderJobId = jobId;
       await newEvent.save();
     } catch (scheduleError) {
-      console.error("Failed to schedule WhatsApp message:", scheduleError);
+      console.error("Failed to schedule SMS:", scheduleError);
       // Event is created but notification scheduling failed
     }
 
     res.status(201).json({
       success: true,
-      message: "Event created successfully",
+      message: "Event created successfully with SMS reminders",
       event: newEvent,
     });
   } catch (error) {
     console.error("Error creating event:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-// Get user's events (no workspace restriction)
-export const getMyEvents = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { page = 1, limit = 10 } = req.query;
-
-    const events = await Event.find({ createdBy: userId })
-      .sort({ dateTime: 1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate("createdBy", "name email");
-
-    const total = await Event.countDocuments({ createdBy: userId });
-
-    res.json({
-      success: true,
-      events,
-      pagination: {
-        current: parseInt(page),
-        total: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
-    });
-  } catch (error) {
-    console.error("Error getting user events:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -127,7 +94,7 @@ export const updateEvent = async (req, res) => {
       });
     }
 
-    // Check if user owns this event
+    // Check ownership
     if (event.createdBy.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -152,9 +119,9 @@ export const updateEvent = async (req, res) => {
       }
     }
 
-    // Cancel existing scheduled message
+    // Cancel existing scheduled SMS
     if (event.reminderJobId) {
-      cancelScheduledMessage(event.reminderJobId);
+      cancelScheduledSMS(event.reminderJobId);
     }
 
     // Update event fields
@@ -189,13 +156,13 @@ export const updateEvent = async (req, res) => {
 
     await event.save();
 
-    // Reschedule WhatsApp message
+    // Reschedule SMS
     try {
-      const jobId = await scheduleWhatsAppMessage(event);
+      const jobId = await scheduleSMSReminder(event);
       event.reminderJobId = jobId;
       await event.save();
     } catch (scheduleError) {
-      console.error("Failed to reschedule WhatsApp message:", scheduleError);
+      console.error("Failed to reschedule SMS:", scheduleError);
     }
 
     res.json({
@@ -226,7 +193,7 @@ export const deleteEvent = async (req, res) => {
       });
     }
 
-    // Check if user owns this event
+    // Check ownership
     if (event.createdBy.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -234,9 +201,9 @@ export const deleteEvent = async (req, res) => {
       });
     }
 
-    // Cancel scheduled message
+    // Cancel scheduled SMS
     if (event.reminderJobId) {
-      cancelScheduledMessage(event.reminderJobId);
+      cancelScheduledSMS(event.reminderJobId);
     }
 
     await Event.findByIdAndDelete(eventId);
@@ -247,6 +214,39 @@ export const deleteEvent = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting event:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Get user's events
+export const getMyEvents = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { page = 1, limit = 10 } = req.query;
+
+    const events = await Event.find({ createdBy: userId })
+      .sort({ dateTime: 1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .populate("createdBy", "name email");
+
+    const total = await Event.countDocuments({ createdBy: userId });
+
+    res.json({
+      success: true,
+      events,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting user events:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",

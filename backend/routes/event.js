@@ -4,6 +4,7 @@ import {
   updateEvent,
   deleteEvent,
   getMyEvents,
+  //testSMS, // NEW
 } from "../controllers/event.js";
 import authMiddleware from "../middleware/auth-middleware.js";
 import { validateRequest } from "zod-express-middleware";
@@ -11,7 +12,6 @@ import { z } from "zod";
 
 const router = express.Router();
 
-// ✅ UPDATED: Validation schema for workspace-independent events
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
   description: z.string().optional(),
@@ -22,7 +22,7 @@ const eventSchema = z.object({
     .max(2, "Maximum 2 phone numbers allowed"),
 });
 
-// Create event (workspace independent)
+// Create event
 router.post(
   "/",
   authMiddleware,
@@ -30,7 +30,7 @@ router.post(
   createEvent
 );
 
-// Get my events (all user's events)
+// Get my events
 router.get("/my-events", authMiddleware, getMyEvents);
 
 // Update event
@@ -53,5 +53,17 @@ router.delete(
   }),
   deleteEvent
 );
+
+// ✅ NEW: Test SMS endpoint
+// router.post(
+//   "/test-sms",
+//   authMiddleware,
+//   validateRequest({
+//     body: z.object({
+//       phoneNumber: z.string().min(10, "Valid phone number is required"),
+//     }),
+//   }),
+//   testSMS
+// );
 
 export default router;

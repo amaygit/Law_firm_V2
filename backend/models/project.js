@@ -22,7 +22,7 @@ const projectSchema = new Schema(
         "Judgment Passed",
         "Appealed",
         "Closed",
-        "Withdrawn"
+        "Withdrawn",
       ],
       default: "Filed",
     },
@@ -40,8 +40,21 @@ const projectSchema = new Schema(
           type: String,
           enum: ["manager", "contributor", "viewer"],
           default: "contributor",
-
         },
+      },
+    ],
+    // ✅ NEW: Add assignees array (sublawyers)
+    assignees: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    // ✅ NEW: Add clients array
+    clients: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
     tags: [{ type: String }],

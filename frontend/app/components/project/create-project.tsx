@@ -3,7 +3,7 @@ import { ProjectStatus, type MemberProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react"; // ✅ NEW
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,6 @@ import {
 } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
-
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "../ui/calendar";
@@ -57,8 +56,9 @@ export const CreateProjectDialog = ({
 }: CreateProjectDialogProps) => {
   const { user } = useAuth();
 
-  // ✅ NEW: Control popover open state
   const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
+  const [assigneesPopoverOpen, setAssigneesPopoverOpen] = useState(false); // ✅ NEW
+  const [clientsPopoverOpen, setClientsPopoverOpen] = useState(false); // ✅ NEW
 
   const form = useForm<CreateProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -69,6 +69,8 @@ export const CreateProjectDialog = ({
       startDate: "",
       dueDate: "",
       members: user ? [{ user: user._id, role: "manager" }] : [],
+      assignees: user ? [user._id] : [], // ✅ NEW
+      clients: [], // ✅ NEW
       tags: undefined,
     },
   });
@@ -92,11 +94,19 @@ export const CreateProjectDialog = ({
       }
     }
 
+    // ✅ Ensure creator is in assignees
+    const finalAssignees = values.assignees || [];
+    if (user && !finalAssignees.includes(user._id)) {
+      finalAssignees.push(user._id);
+    }
+
     mutate(
       {
         projectData: {
           ...values,
           members: finalMembers,
+          assignees: finalAssignees, // ✅ NEW
+          clients: values.clients || [], // ✅ NEW
         },
         workspaceId,
       },
@@ -110,6 +120,8 @@ export const CreateProjectDialog = ({
             startDate: "",
             dueDate: "",
             members: user ? [{ user: user._id, role: "manager" }] : [],
+            assignees: user ? [user._id] : [],
+            clients: [],
             tags: undefined,
           });
           onOpenChange(false);
@@ -187,6 +199,7 @@ export const CreateProjectDialog = ({
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="status"
@@ -198,7 +211,6 @@ export const CreateProjectDialog = ({
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Case Status" />
                       </SelectTrigger>
-
                       <SelectContent>
                         {Object.values(ProjectStatus).map((status) => (
                           <SelectItem key={status} value={status}>
@@ -239,7 +251,6 @@ export const CreateProjectDialog = ({
                             )}
                           </Button>
                         </PopoverTrigger>
-
                         <PopoverContent>
                           <Calendar
                             mode="single"
@@ -257,6 +268,7 @@ export const CreateProjectDialog = ({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="dueDate"
@@ -282,7 +294,6 @@ export const CreateProjectDialog = ({
                             )}
                           </Button>
                         </PopoverTrigger>
-
                         <PopoverContent>
                           <Calendar
                             mode="single"
@@ -316,7 +327,7 @@ export const CreateProjectDialog = ({
               )}
             />
 
-            <FormField
+            {/* <FormField
               control={form.control}
               name="members"
               render={({ field }) => {
@@ -457,18 +468,225 @@ export const CreateProjectDialog = ({
                                         <SelectValue placeholder="Role" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {/* <SelectItem value="manager">
-                                          Lawyer
-                                        </SelectItem> */}
                                         <SelectItem value="contributor">
                                           Sublawyer
                                         </SelectItem>
-                                        {/* <SelectItem value="viewer">
-                                          Client
-                                        </SelectItem> */}
                                       </SelectContent>
                                     </Select>
                                   )}
+                                </div>
+                              );
+                            })}
+
+                            {availableMembers.length === 0 && (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                No other members available
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            /> */}
+
+            {/* ✅ NEW: Assignees Field */}
+            <FormField
+              control={form.control}
+              name="assignees"
+              render={({ field }) => {
+                const selectedAssignees = field.value || [];
+
+                return (
+                  <FormItem>
+                    <FormLabel>Assignees (Sublawyers)</FormLabel>
+                    <FormControl>
+                      <Popover
+                        open={assigneesPopoverOpen}
+                        onOpenChange={setAssigneesPopoverOpen}
+                        modal={true}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant={"outline"}
+                            className="w-full justify-start text-left font-normal min-h-11"
+                          >
+                            {selectedAssignees.length === 0 ? (
+                              <span className="text-muted-foreground">
+                                Select Assignees
+                              </span>
+                            ) : selectedAssignees.length <= 2 ? (
+                              selectedAssignees
+                                .map((id) => {
+                                  if (id === user?._id) return "You";
+                                  const member = workspaceMembers.find(
+                                    (wm) => wm.user._id === id
+                                  );
+                                  return member?.user.name || "Unknown";
+                                })
+                                .join(", ")
+                            ) : (
+                              `${selectedAssignees.length} assignees selected`
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-80 max-h-96 overflow-y-auto p-2"
+                          align="start"
+                        >
+                          <div className="flex flex-col gap-2">
+                            {user && (
+                              <div className="flex items-center gap-2 p-2 border rounded bg-blue-50">
+                                <Checkbox
+                                  checked={true}
+                                  disabled={true}
+                                  id={`assignee-creator-${user._id}`}
+                                />
+                                <label
+                                  htmlFor={`assignee-creator-${user._id}`}
+                                  className="truncate flex-1 font-medium text-sm"
+                                >
+                                  You (Auto-assigned)
+                                </label>
+                              </div>
+                            )}
+
+                            {availableMembers.map((member) => {
+                              const isSelected = selectedAssignees.includes(
+                                member.user._id
+                              );
+
+                              return (
+                                <div
+                                  key={member.user._id}
+                                  className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      field.onChange(
+                                        selectedAssignees.filter(
+                                          (id) => id !== member.user._id
+                                        )
+                                      );
+                                    } else {
+                                      field.onChange([
+                                        ...selectedAssignees,
+                                        member.user._id,
+                                      ]);
+                                    }
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    id={`assignee-${member.user._id}`}
+                                  />
+                                  <label
+                                    htmlFor={`assignee-${member.user._id}`}
+                                    className="truncate flex-1 text-sm cursor-pointer"
+                                  >
+                                    {member.user.name}
+                                  </label>
+                                </div>
+                              );
+                            })}
+
+                            {availableMembers.length === 0 && (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                No other members available
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+
+            {/* ✅ NEW: Clients Field */}
+            <FormField
+              control={form.control}
+              name="clients"
+              render={({ field }) => {
+                const selectedClients = field.value || [];
+
+                return (
+                  <FormItem>
+                    <FormLabel>Clients</FormLabel>
+                    <FormControl>
+                      <Popover
+                        open={clientsPopoverOpen}
+                        onOpenChange={setClientsPopoverOpen}
+                        modal={true}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant={"outline"}
+                            className="w-full justify-start text-left font-normal min-h-11"
+                          >
+                            {selectedClients.length === 0 ? (
+                              <span className="text-muted-foreground">
+                                Select Clients
+                              </span>
+                            ) : selectedClients.length <= 2 ? (
+                              selectedClients
+                                .map((id) => {
+                                  const member = workspaceMembers.find(
+                                    (wm) => wm.user._id === id
+                                  );
+                                  return member?.user.name || "Unknown";
+                                })
+                                .join(", ")
+                            ) : (
+                              `${selectedClients.length} clients selected`
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-80 max-h-96 overflow-y-auto p-2"
+                          align="start"
+                        >
+                          <div className="flex flex-col gap-2">
+                            {availableMembers.map((member) => {
+                              const isSelected = selectedClients.includes(
+                                member.user._id
+                              );
+
+                              return (
+                                <div
+                                  key={member.user._id}
+                                  className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      field.onChange(
+                                        selectedClients.filter(
+                                          (id) => id !== member.user._id
+                                        )
+                                      );
+                                    } else {
+                                      field.onChange([
+                                        ...selectedClients,
+                                        member.user._id,
+                                      ]);
+                                    }
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    id={`client-${member.user._id}`}
+                                  />
+                                  <label
+                                    htmlFor={`client-${member.user._id}`}
+                                    className="truncate flex-1 text-sm cursor-pointer"
+                                  >
+                                    {member.user.name}
+                                  </label>
                                 </div>
                               );
                             })}

@@ -190,7 +190,10 @@ export const TaskClientsSelector = ({
   isClient?: boolean;
 }) => {
   // ✅ Get task owner (creator) - owner cannot be a client
-  const taskOwnerId = task.createdBy?.toString() || task.createdBy;
+  const taskOwnerId =
+    typeof task.createdBy === "string"
+      ? task.createdBy
+      : task.createdBy?._id || "";
 
   const [selectedIds, setSelectedIds] = useState<string[]>(
     clients.map((client) => client._id)
@@ -249,35 +252,51 @@ export const TaskClientsSelector = ({
     );
   };
 
+  // ✅ Create a map of all users (from both clients and projectMembers)
+  const allUsersMap = new Map<string, User>();
+
+  // Add all clients to map
+  clients.forEach((client) => {
+    allUsersMap.set(client._id, client);
+  });
+
+  // Add all project members to map
+  projectMembers.forEach((member) => {
+    allUsersMap.set(member.user._id, member.user);
+  });
+
   return (
     <div className="mb-6">
       <h3 className="text-sm font-medium text-muted-foreground mb-2">
         Clients
       </h3>
 
-      {/* Always show selected clients */}
+      {/* ✅ Always show selected clients using the map */}
       <div className="flex flex-wrap gap-2 mb-2">
         {selectedIds.length === 0 ? (
           <span className="text-xs text-muted-foreground">
             No clients assigned
           </span>
         ) : (
-          projectMembers
-            .filter((member) => selectedIds.includes(member.user._id))
-            .map((m) => (
+          selectedIds.map((userId) => {
+            const user = allUsersMap.get(userId);
+            if (!user) return null;
+
+            return (
               <div
-                key={m.user._id}
+                key={userId}
                 className="flex items-center bg-gray-100 rounded px-2 py-1"
               >
                 <Avatar className="size-6 mr-1">
-                  <AvatarImage src={m.user.profilePicture} />
-                  <AvatarFallback>{m.user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user.profilePicture} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="text-xs text-muted-foreground">
-                  {m.user.name}
+                  {user.name}
                 </span>
               </div>
-            ))
+            );
+          })
         )}
       </div>
 
@@ -310,13 +329,11 @@ export const TaskClientsSelector = ({
                 </button>
               </div>
 
-              {/* ✅ Show message if owner tries to see themselves */}
-              {projectMembers.some((m) => m.user._id === taskOwnerId) && (
-                <div className="px-3 py-2 bg-gray-50 border-b text-xs text-gray-600">
-                  <span className="font-medium">Note:</span> Task owner cannot
-                  be added as a client
-                </div>
-              )}
+              {/* ✅ Show message about owner restriction */}
+              <div className="px-3 py-2 bg-blue-50 border-b text-xs text-blue-700">
+                <span className="font-medium">Note:</span> Task owner cannot be
+                added as a client
+              </div>
 
               {/* ✅ Show only non-owner members */}
               {availableMembers.length > 0 ? (

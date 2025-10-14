@@ -481,17 +481,15 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateTaskMutation } from "@/hooks/use-task";
 import { createTaskSchema } from "@/lib/schema";
-import type { ProjectMemberRole, User } from "@/types";
+import type { User } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
-import { useState } from "react"; // ✅ NEW
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
-import { Checkbox } from "../ui/checkbox";
 import {
   Form,
   FormControl,
@@ -510,13 +508,13 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import { useAuth } from "@/provider/auth-context";
 
 interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  projectMembers: { user: User; role: ProjectMemberRole }[];
+  projectAssignees?: User[]; // ✅ Made optional with default
+  projectClients?: User[]; // ✅ Made optional with default
 }
 
 export type CreateTaskFormData = z.infer<typeof createTaskSchema>;
@@ -525,14 +523,9 @@ export const CreateTaskDialog = ({
   open,
   onOpenChange,
   projectId,
-  projectMembers,
+  projectAssignees = [], // ✅ Default to empty array
+  projectClients = [], // ✅ Default to empty array
 }: CreateTaskDialogProps) => {
-  const { user } = useAuth();
-
-  // ✅ NEW: Control popover open state
-  const [assigneesPopoverOpen, setAssigneesPopoverOpen] = useState(false);
-  const [clientsPopoverOpen, setClientsPopoverOpen] = useState(false);
-
   const form = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
@@ -541,26 +534,16 @@ export const CreateTaskDialog = ({
       status: "To Do",
       priority: "Medium",
       dueDate: "",
-      assignees: user ? [user._id] : [],
-      clients: [],
     },
   });
 
   const { mutate, isPending } = useCreateTaskMutation();
 
   const onSubmit = (values: CreateTaskFormData) => {
-    const finalAssignees = values.assignees || [];
-    if (user && !finalAssignees.includes(user._id)) {
-      finalAssignees.push(user._id);
-    }
-
     mutate(
       {
         projectId,
-        taskData: {
-          ...values,
-          assignees: finalAssignees,
-        },
+        taskData: values,
       },
       {
         onSuccess: () => {
@@ -571,23 +554,18 @@ export const CreateTaskDialog = ({
             status: "To Do",
             priority: "Medium",
             dueDate: "",
-            assignees: user ? [user._id] : [],
-            clients: [],
           });
           onOpenChange(false);
         },
         onError: (error: any) => {
-          const errorMessage = error.response.data.message;
+          const errorMessage =
+            error.response?.data?.message || "Failed to create case";
           toast.error(errorMessage);
           console.log(error);
         },
       }
     );
   };
-
-  const availableMembers = projectMembers.filter(
-    (member) => member.user._id !== user?._id
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -613,6 +591,7 @@ export const CreateTaskDialog = ({
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -642,25 +621,16 @@ export const CreateTaskDialog = ({
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
-                            <FormItem>
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-
-                              <SelectContent>
-                                <SelectItem value="To Do">
-                                  Filed Cases
-                                </SelectItem>
-                                <SelectItem value="In Progress">
-                                  Case In Progress
-                                </SelectItem>
-                                <SelectItem value="Done">
-                                  Closed Cases
-                                </SelectItem>
-                              </SelectContent>
-                            </FormItem>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="To Do">Filed Cases</SelectItem>
+                              <SelectItem value="In Progress">
+                                Case In Progress
+                              </SelectItem>
+                              <SelectItem value="Done">Closed Cases</SelectItem>
+                            </SelectContent>
                           </Select>
                         </FormControl>
                         <FormMessage />
@@ -679,19 +649,14 @@ export const CreateTaskDialog = ({
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
-                            <FormItem>
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                              </FormControl>
-
-                              <SelectContent>
-                                <SelectItem value="Low">Low</SelectItem>
-                                <SelectItem value="Medium">Medium</SelectItem>
-                                <SelectItem value="High">High</SelectItem>
-                              </SelectContent>
-                            </FormItem>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Low">Low</SelectItem>
+                              <SelectItem value="Medium">Medium</SelectItem>
+                              <SelectItem value="High">High</SelectItem>
+                            </SelectContent>
                           </Select>
                         </FormControl>
                         <FormMessage />
@@ -710,10 +675,11 @@ export const CreateTaskDialog = ({
                         <Popover modal={true}>
                           <PopoverTrigger asChild>
                             <Button
+                              type="button"
                               variant={"outline"}
                               className={
                                 "w-full justify-start text-left font-normal" +
-                                (!field.value ? "text-muted-foreground" : "")
+                                (!field.value ? " text-muted-foreground" : "")
                               }
                             >
                               <CalendarIcon className="size-4 mr-2" />
@@ -724,7 +690,6 @@ export const CreateTaskDialog = ({
                               )}
                             </Button>
                           </PopoverTrigger>
-
                           <PopoverContent>
                             <Calendar
                               mode="single"
@@ -745,215 +710,59 @@ export const CreateTaskDialog = ({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="assignees"
-                  render={({ field }) => {
-                    const selectedMembers = field.value || [];
-
-                    return (
-                      <FormItem>
-                        <FormLabel>Assignees</FormLabel>
-                        <FormControl>
-                          <Popover
-                            open={assigneesPopoverOpen}
-                            onOpenChange={setAssigneesPopoverOpen}
-                            modal={true}
+                {/* ✅ Read-only Assignees Display */}
+                <div className="space-y-2">
+                  <FormLabel>Assignees (From Project)</FormLabel>
+                  <div className="p-3 border rounded-md bg-gray-50">
+                    {projectAssignees.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No assignees in this project
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {projectAssignees.map((assignee) => (
+                          <div
+                            key={assignee._id}
+                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                           >
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-start text-left font-normal min-h-11"
-                              >
-                                {selectedMembers.length === 0 ? (
-                                  <span className="text-muted-foreground">
-                                    Select assignees
-                                  </span>
-                                ) : selectedMembers.length <= 2 ? (
-                                  selectedMembers
-                                    .map((m) => {
-                                      if (m === user?._id) {
-                                        return "You";
-                                      }
-                                      const member = projectMembers.find(
-                                        (wm) => wm.user._id === m
-                                      );
-                                      return member?.user.name || "Unknown";
-                                    })
-                                    .join(", ")
-                                ) : (
-                                  `${selectedMembers.length} assignees selected`
-                                )}
-                              </Button>
-                            </PopoverTrigger>
+                            {assignee.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Assignees are inherited from the project and cannot be
+                    changed here
+                  </p>
+                </div>
 
-                            <PopoverContent
-                              className="w-80 max-h-60 overflow-y-auto p-2"
-                              align="start"
-                            >
-                              <div className="flex flex-col gap-2">
-                                {user && (
-                                  <div className="flex items-center gap-2 p-2 border rounded bg-blue-50">
-                                    <Checkbox
-                                      checked={true}
-                                      disabled={true}
-                                      id={`creator-${user._id}`}
-                                    />
-                                    <label
-                                      htmlFor={`creator-${user._id}`}
-                                      className="truncate flex-1 font-medium text-sm"
-                                    >
-                                      You (Creator) - Auto-assigned
-                                    </label>
-                                  </div>
-                                )}
-
-                                {availableMembers.map((member) => {
-                                  const isSelected = selectedMembers.includes(
-                                    member.user._id
-                                  );
-                                  return (
-                                    <div
-                                      key={member.user._id}
-                                      className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer"
-                                      onClick={() => {
-                                        if (isSelected) {
-                                          field.onChange(
-                                            selectedMembers.filter(
-                                              (m) => m !== member.user._id
-                                            )
-                                          );
-                                        } else {
-                                          field.onChange([
-                                            ...selectedMembers,
-                                            member.user._id,
-                                          ]);
-                                        }
-                                      }}
-                                    >
-                                      <Checkbox
-                                        checked={isSelected}
-                                        id={`member-${member.user._id}`}
-                                      />
-                                      <label
-                                        htmlFor={`member-${member.user._id}`}
-                                        className="truncate flex-1 text-sm cursor-pointer"
-                                      >
-                                        {member.user.name}
-                                      </label>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="clients"
-                  render={({ field }) => {
-                    const selectedMembers = field.value || [];
-                    const availableClients = projectMembers.filter(
-                      (member) => member.user._id !== user?._id
-                    );
-
-                    return (
-                      <FormItem>
-                        <FormLabel>Clients</FormLabel>
-                        <FormControl>
-                          <Popover
-                            open={clientsPopoverOpen}
-                            onOpenChange={setClientsPopoverOpen}
-                            modal={true}
+                {/* ✅ Read-only Clients Display */}
+                <div className="space-y-2">
+                  <FormLabel>Clients (From Project)</FormLabel>
+                  <div className="p-3 border rounded-md bg-gray-50">
+                    {projectClients.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No clients in this project
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {projectClients.map((client) => (
+                          <div
+                            key={client._id}
+                            className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
                           >
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-start text-left font-normal min-h-11"
-                              >
-                                {selectedMembers.length === 0 ? (
-                                  <span className="text-muted-foreground">
-                                    Select Clients
-                                  </span>
-                                ) : selectedMembers.length <= 2 ? (
-                                  selectedMembers
-                                    .map((m) => {
-                                      const member = projectMembers.find(
-                                        (wm) => wm.user._id === m
-                                      );
-                                      return member?.user.name || "Unknown";
-                                    })
-                                    .join(", ")
-                                ) : (
-                                  `${selectedMembers.length} clients selected`
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-
-                            <PopoverContent
-                              className="w-80 max-h-60 overflow-y-auto p-2"
-                              align="start"
-                            >
-                              <div className="flex flex-col gap-2">
-                                {availableClients.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground text-center py-4">
-                                    No other members available
-                                  </div>
-                                ) : (
-                                  availableClients.map((member) => {
-                                    const isSelected = selectedMembers.includes(
-                                      member.user._id
-                                    );
-                                    return (
-                                      <div
-                                        key={member.user._id}
-                                        className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer"
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            field.onChange(
-                                              selectedMembers.filter(
-                                                (m) => m !== member.user._id
-                                              )
-                                            );
-                                          } else {
-                                            field.onChange([
-                                              ...selectedMembers,
-                                              member.user._id,
-                                            ]);
-                                          }
-                                        }}
-                                      >
-                                        <Checkbox
-                                          checked={isSelected}
-                                          id={`client-${member.user._id}`}
-                                        />
-                                        <label
-                                          htmlFor={`client-${member.user._id}`}
-                                          className="truncate flex-1 text-sm cursor-pointer"
-                                        >
-                                          {member.user.name}
-                                        </label>
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
+                            {client.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clients are inherited from the project and cannot be changed
+                    here
+                  </p>
+                </div>
               </div>
             </div>
 

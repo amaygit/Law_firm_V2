@@ -190,7 +190,6 @@ export const TaskAssigneesSelector = ({
   isClient?: boolean;
 }) => {
   // ✅ Get task owner (creator)
-  // ✅ Always ensure taskOwnerId is a string
   const taskOwnerId =
     typeof task.createdBy === "string"
       ? task.createdBy
@@ -260,38 +259,54 @@ export const TaskAssigneesSelector = ({
     );
   };
 
+  // ✅ Create a map of all users (from both assignees and projectMembers)
+  const allUsersMap = new Map<string, User>();
+
+  // Add all assignees to map
+  assignees.forEach((assignee) => {
+    allUsersMap.set(assignee._id, assignee);
+  });
+
+  // Add all project members to map
+  projectMembers.forEach((member) => {
+    allUsersMap.set(member.user._id, member.user);
+  });
+
   return (
     <div className="mb-6">
       <h3 className="text-sm font-medium text-muted-foreground mb-2">
         Assignees
       </h3>
 
-      {/* Always show selected assignees */}
+      {/* ✅ Always show selected assignees using the map */}
       <div className="flex flex-wrap gap-2 mb-2">
         {selectedIds.length === 0 ? (
           <span className="text-xs text-muted-foreground">Unassigned</span>
         ) : (
-          projectMembers
-            .filter((member) => selectedIds.includes(member.user._id))
-            .map((m) => (
+          selectedIds.map((userId) => {
+            const user = allUsersMap.get(userId);
+            if (!user) return null;
+
+            return (
               <div
-                key={m.user._id}
+                key={userId}
                 className="flex items-center bg-gray-100 rounded px-2 py-1"
               >
                 <Avatar className="size-6 mr-1">
-                  <AvatarImage src={m.user.profilePicture} />
-                  <AvatarFallback>{m.user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user.profilePicture} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="text-xs text-muted-foreground">
-                  {m.user.name}
-                  {m.user._id === taskOwnerId && (
+                  {user.name}
+                  {userId === taskOwnerId && (
                     <span className="ml-1 text-blue-600 font-medium">
                       (Owner)
                     </span>
                   )}
                 </span>
               </div>
-            ))
+            );
+          })
         )}
       </div>
 
@@ -368,6 +383,12 @@ export const TaskAssigneesSelector = ({
                   <span>{m.user.name}</span>
                 </label>
               ))}
+
+              {availableMembers.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+                  No other members available
+                </div>
+              )}
 
               <div className="flex justify-between px-2 py-1">
                 <Button

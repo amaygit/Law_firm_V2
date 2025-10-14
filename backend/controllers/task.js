@@ -156,8 +156,7 @@ const createTask = async (req, res) => {
       status,
       priority,
       dueDate,
-      assignees,
-      clients,
+      // ✅ REMOVED: assignees and clients from request body
     } = req.body;
 
     const project = await Project.findById(projectId);
@@ -185,21 +184,19 @@ const createTask = async (req, res) => {
         message: "You are not a member of this workspace",
       });
     }
-    const creatorId = req.user._id.toString();
-    const finalAssignees = assignees || [];
 
-    // Add creator to assignees if not already present
-    if (!finalAssignees.includes(creatorId)) {
-      finalAssignees.push(creatorId);
-    }
+    // ✅ NEW: Get assignees and clients from project
+    const finalAssignees = project.assignees.map((a) => a.toString());
+    const finalClients = project.clients.map((c) => c.toString());
+
     const newTask = await Task.create({
       title,
       description,
       status,
       priority,
       dueDate,
-      assignees: finalAssignees,
-      clients,
+      assignees: finalAssignees, // ✅ From project
+      clients: finalClients, // ✅ From project
       project: projectId,
       workspace: project.workspace,
       createdBy: req.user._id,
