@@ -7,14 +7,15 @@ const createProject = async (req, res) => {
     const { workspaceId } = req.params;
     const {
       title,
+      name, // ✅ NEW: Case Name
       description,
       status,
       startDate,
       dueDate,
       members,
       tags,
-      assignees, // ✅ NEW
-      clients, // ✅ NEW
+      assignees,
+      clients,
     } = req.body;
 
     const workspace = await Workspace.findById(workspaceId);
@@ -35,7 +36,6 @@ const createProject = async (req, res) => {
       });
     }
 
-    // ✅ Automatically add creator to members if not already included
     const creatorId = req.user._id.toString();
     const finalMembers = members || [];
 
@@ -50,7 +50,6 @@ const createProject = async (req, res) => {
       });
     }
 
-    // ✅ NEW: Ensure creator is in assignees
     const finalAssignees = assignees || [];
     if (!finalAssignees.includes(creatorId)) {
       finalAssignees.push(creatorId);
@@ -58,13 +57,14 @@ const createProject = async (req, res) => {
 
     const newProject = await Project.create({
       title,
+      name, // ✅ NEW
       description,
       status,
       startDate,
       dueDate,
       members: finalMembers,
-      assignees: finalAssignees, // ✅ NEW
-      clients: clients || [], // ✅ NEW
+      assignees: finalAssignees,
+      clients: clients || [],
       tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
       workspace: workspaceId,
       createdBy: req.user._id,
@@ -84,8 +84,8 @@ const getProjectDetails = async (req, res) => {
     const { projectId } = req.params;
 
     const project = await Project.findById(projectId)
-      .populate("assignees", "name profilePicture") // ✅ NEW
-      .populate("clients", "name profilePicture"); // ✅ NEW
+      .populate("assignees", "name profilePicture")
+      .populate("clients", "name profilePicture");
 
     if (!project) {
       return res.status(404).json({
@@ -117,8 +117,8 @@ const getProjectTasks = async (req, res) => {
     const { projectId } = req.params;
     const project = await Project.findById(projectId)
       .populate("members.user")
-      .populate("assignees", "name profilePicture") // ✅ NEW
-      .populate("clients", "name profilePicture"); // ✅ NEW
+      .populate("assignees", "name profilePicture")
+      .populate("clients", "name profilePicture");
 
     if (!project) {
       return res.status(404).json({
@@ -187,4 +187,48 @@ const deleteProject = async (req, res) => {
   }
 };
 
-export { createProject, getProjectDetails, getProjectTasks, deleteProject };
+// ✅ NEW: Update project name
+const updateProjectName = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { name } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: "Case name is required" });
+    }
+
+    if (name.length > 80) {
+      return res
+        .status(400)
+        .json({ message: "Case name must be 80 characters or less" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    const isMember = project.members.some(
+      (member) => member.user.toString() === req.user._id.toString()
+    );
+    if (!isMember) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    project.name = name;
+    await project.save();
+
+    return res.status(200).json(project);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export {
+  createProject,
+  getProjectDetails,
+  getProjectTasks,
+  deleteProject,
+  updateProjectName,
+};

@@ -7,7 +7,8 @@ import {
   createProject,
   getProjectDetails,
   getProjectTasks,
-  deleteProject
+  deleteProject,
+  updateProjectName, // ✅ NEW
 } from "../controllers/project.js";
 
 const router = express.Router();
@@ -21,6 +22,16 @@ router.delete(
   deleteProject
 );
 
+// ✅ NEW: Update project name route
+router.put(
+  "/:projectId/name",
+  authMiddleware,
+  validateRequest({
+    params: z.object({ projectId: z.string() }),
+    body: z.object({ name: z.string().min(3).max(80) }),
+  }),
+  updateProjectName
+);
 
 router.post(
   "/:workspaceId/create-project",
@@ -49,6 +60,5 @@ router.get(
   validateRequest({ params: z.object({ projectId: z.string() }) }),
   getProjectTasks
 );
-
 
 export default router;

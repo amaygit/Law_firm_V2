@@ -7,6 +7,12 @@ const projectSchema = new Schema(
       required: true,
       trim: true,
     },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 80,
+    },
     description: { type: String, trim: true },
     workspace: {
       type: Schema.Types.ObjectId,

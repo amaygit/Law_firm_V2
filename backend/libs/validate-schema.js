@@ -43,6 +43,7 @@ const tokenSchema = z.object({
 // ✅ UPDATED: Projects (represents a legal Case)
 const projectSchema = z.object({
   title: z.string().min(3, "Case title is required"),
+  name: z.string().max(80, "Title must be at Atmost 80 characters"),
   description: z.string().optional(),
   status: z.enum(
     [

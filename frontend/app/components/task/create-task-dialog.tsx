@@ -513,8 +513,8 @@ interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  projectAssignees?: User[]; // ✅ Made optional with default
-  projectClients?: User[]; // ✅ Made optional with default
+  projectAssignees?: User[];
+  projectClients?: User[];
 }
 
 export type CreateTaskFormData = z.infer<typeof createTaskSchema>;
@@ -523,8 +523,8 @@ export const CreateTaskDialog = ({
   open,
   onOpenChange,
   projectId,
-  projectAssignees = [], // ✅ Default to empty array
-  projectClients = [], // ✅ Default to empty array
+  projectAssignees = [],
+  projectClients = [],
 }: CreateTaskDialogProps) => {
   const form = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
@@ -712,7 +712,7 @@ export const CreateTaskDialog = ({
 
                 {/* ✅ Read-only Assignees Display */}
                 <div className="space-y-2">
-                  <FormLabel>Assignees (From Project)</FormLabel>
+                  <FormLabel>Assignees</FormLabel>
                   <div className="p-3 border rounded-md bg-gray-50">
                     {projectAssignees.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
@@ -731,15 +731,11 @@ export const CreateTaskDialog = ({
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Assignees are inherited from the project and cannot be
-                    changed here
-                  </p>
                 </div>
 
                 {/* ✅ Read-only Clients Display */}
                 <div className="space-y-2">
-                  <FormLabel>Clients (From Project)</FormLabel>
+                  <FormLabel>Clients</FormLabel>
                   <div className="p-3 border rounded-md bg-gray-50">
                     {projectClients.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
@@ -758,10 +754,6 @@ export const CreateTaskDialog = ({
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Clients are inherited from the project and cannot be changed
-                    here
-                  </p>
                 </div>
               </div>
             </div>

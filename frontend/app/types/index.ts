@@ -36,6 +36,7 @@ export enum ProjectStatus {
 export interface Project {
   _id: string;
   title: string;
+  name: string;
   description?: string;
   status: ProjectStatus;
   workspace: Workspace;

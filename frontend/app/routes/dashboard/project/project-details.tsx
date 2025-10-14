@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/back-button";
 import { Loader } from "@/components/loader";
 import { CreateTaskDialog } from "@/components/task/create-task-dialog";
+import { ProjectNameEditor } from "@/components/project/project-name-editor"; // ✅ NEW
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { AlertCircle, Calendar, CheckCircle, Clock } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ProjectDetails = () => {
   const { projectId, workspaceId } = useParams<{
@@ -23,6 +25,7 @@ const ProjectDetails = () => {
     workspaceId: string;
   }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [isCreateTask, setIsCreateTask] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskStatus | "All">("All");
@@ -35,6 +38,7 @@ const ProjectDetails = () => {
     isLoading: boolean;
   };
   const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
+
   if (isLoading)
     return (
       <div>
@@ -50,7 +54,6 @@ const ProjectDetails = () => {
       `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`
     );
   };
-  // const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
 
   const handleDeleteProject = () => {
     if (!projectId) return;
@@ -71,17 +74,39 @@ const ProjectDetails = () => {
     });
   };
 
+  // ✅ NEW: Handle project name update
+  const handleProjectNameUpdate = (newName: string) => {
+    queryClient.setQueryData(["project", projectId], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        project: {
+          ...oldData.project,
+          name: newName,
+        },
+      };
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex-1">
           <BackButton />
           <div className="flex items-center gap-3">
-            <h1 className="text-xl md:text-2xl font-bold">{project.title}</h1>
+            {/* ✅ NEW: Editable Project Name */}
+            <ProjectNameEditor
+              projectId={projectId!}
+              currentName={project.name || ""}
+              onUpdate={handleProjectNameUpdate}
+            />
           </div>
-          {project.description && (
-            <p className="text-sm text-gray-500">{project.description}</p>
-          )}
+          {/* ✅ Show Case Type */}
+          <p className="text-sm text-muted-foreground">{project.title}</p>
+          {/* Show description if exists */}
+          {/* {project.description && (
+            <p className="text-sm text-gray-500 mt-1">{project.description}</p>
+          )} */}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -95,13 +120,13 @@ const ProjectDetails = () => {
             </span>
           </div>
 
-          <Button onClick={() => setIsCreateTask(true)}>Add Case</Button>
+          <Button onClick={() => setIsCreateTask(true)}>Add Task</Button>
           <Button
             variant="destructive"
             onClick={handleDeleteProject}
             disabled={isDeleting}
           >
-            {isDeleting ? "Deleting..." : "Delete ALL Cases"}
+            {isDeleting ? "Deleting..." : "Delete ALL Tasks"}
           </Button>
         </div>
       </div>
@@ -111,10 +136,10 @@ const ProjectDetails = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <TabsList>
               <TabsTrigger value="all" onClick={() => setTaskFilter("All")}>
-                All Cases
+                All Tasks
               </TabsTrigger>
               <TabsTrigger value="todo" onClick={() => setTaskFilter("To Do")}>
-                Filed Cases
+                ToDo
               </TabsTrigger>
               <TabsTrigger
                 value="in-progress"
@@ -131,8 +156,7 @@ const ProjectDetails = () => {
               <span className="text-muted-foreground">Status:</span>
               <div>
                 <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "To Do").length} Filed
-                  Cases
+                  {tasks.filter((task) => task.status === "To Do").length} ToDo
                 </Badge>
                 <Badge variant="outline" className="bg-background">
                   {tasks.filter((task) => task.status === "In Progress").length}{" "}
@@ -149,7 +173,7 @@ const ProjectDetails = () => {
           <TabsContent value="all" className="m-0">
             <div className="grid grid-cols-3 gap-4">
               <TaskColumn
-                title="Filed Cases"
+                title="ToDo"
                 tasks={tasks.filter((task) => task.status === "To Do")}
                 onTaskClick={handleTaskClick}
               />
@@ -203,12 +227,12 @@ const ProjectDetails = () => {
         </Tabs>
       </div>
 
-      {/* create    task dialog */}
+      {/* create task dialog */}
       <CreateTaskDialog
         open={isCreateTask}
         onOpenChange={setIsCreateTask}
         projectId={projectId!}
-        projectAssignees={project?.assignees || []} // ✅ Pass from project
+        projectAssignees={project?.assignees || []}
         projectClients={project?.clients || []}
       />
     </div>

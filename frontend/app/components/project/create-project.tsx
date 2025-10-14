@@ -115,6 +115,7 @@ export const CreateProjectDialog = ({
           toast.success("Case created successfully");
           form.reset({
             title: "",
+            name: "",
             description: "",
             status: ProjectStatus.FILED,
             startDate: "",
@@ -163,19 +164,49 @@ export const CreateProjectDialog = ({
                         <SelectValue placeholder="Case Title" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Constitutional and Administrative Case">
+                          Constitutional and Administrative Case
+                        </SelectItem>
+                        <SelectItem value="Criminal Case">
+                          Criminal Case
+                        </SelectItem>
+                        <SelectItem value="Corporate and Commercial Case">
+                          Corporate and Commercial Case
+                        </SelectItem>
                         <SelectItem value="Civil Case">Civil Case</SelectItem>
-                        <SelectItem value="Criminal Cases">
-                          Criminal Cases
+                        <SelectItem value="Property and Real Estate Case">
+                          Property and Real Estate Case
                         </SelectItem>
-                        <SelectItem value="Corporate Cases">
-                          Corporate Cases
+                        <SelectItem value="International and Cross-Border Case">
+                          International and Cross-Border Case
                         </SelectItem>
-                        <SelectItem value="Constitutional, Administrative & Public Interest">
-                          Constitutional, Administrative & Public Interest
+                        <SelectItem value="Intellectual Property (IP) Case">
+                          Intellectual Property (IP) Case
                         </SelectItem>
+                        <SelectItem value="Labor and Employment Case">
+                          Labor and Employment Case
+                        </SelectItem>
+                        <SelectItem value="Taxation and Fiscal Case">
+                          Taxation and Fiscal Case
+                        </SelectItem>
+                        <SelectItem value="Cyber Case">Cyber Case</SelectItem>
                         <SelectItem value="Others">Others</SelectItem>
                       </SelectContent>
                     </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* ✅ New: Case Name Field */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Case Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter case name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

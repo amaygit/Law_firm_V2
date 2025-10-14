@@ -311,7 +311,7 @@ export const TaskAssigneesSelector = ({
       </div>
 
       {/* Dropdown only visible if NOT client */}
-      {!isClient && (
+      {false && (
         <div className="relative">
           <button
             className="text-sm text-muted-foreground w-full border rounded px-3 py-2 text-left bg-white"

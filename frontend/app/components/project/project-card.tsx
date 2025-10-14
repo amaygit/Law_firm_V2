@@ -29,7 +29,8 @@ export const ProjectCard = ({
       <Card className="transition-all duration-300 hover:shadow-md hover:translate-y-1">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>{project.title}</CardTitle>
+            {/* ✅ Show Case Name as title */}
+            <CardTitle>{project.name}</CardTitle>
             <span
               className={cn(
                 "text-xs rounded-full",
@@ -39,9 +40,16 @@ export const ProjectCard = ({
               {project.status}
             </span>
           </div>
-          <CardDescription className="line-clamp-2">
-            {project.description || "No description"}
+          {/* ✅ Show Case Type with same styling as description */}
+          <CardDescription className="line-clamp-1">
+            {project.title}
           </CardDescription>
+          {/* Description on next line if exists */}
+          {project.description && (
+            <CardDescription className="line-clamp-2">
+              {project.description}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

@@ -39,6 +39,7 @@ export const workspaceschema = z.object({
 
 export const projectSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
+  name: z.string().max(80, "Title must be at Atmost 80 characters"),
   description: z.string().optional(),
   status: z.string(),
   startDate: z.string().min(10, "Start date is required"),
