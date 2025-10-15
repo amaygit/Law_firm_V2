@@ -277,41 +277,39 @@ export const Header = ({
           <div />
         )}
 
+        {/* ✅ Right section */}
         <div className="flex items-center gap-2">
+          {/* ✅ Desktop: show StorageIndicator & Vakalatnama inline */}
           <StorageIndicator />
+          <div className="hidden sm:flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download Vakalatnama</span>
+                </Button>
+              </DropdownMenuTrigger>
 
-          {/* ✅ Vakalatnama Download Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Download Vakalatnama</span>
-                <span className="sm:hidden">Vakalatnama</span>
-              </Button>
-            </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleVakalatnamaDownload("english")}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleVakalatnamaDownload("hindi")}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Hindi (हिंदी)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleVakalatnamaDownload("english")}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                English
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleVakalatnamaDownload("hindi")}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Hindi (हिंदी)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button variant="ghost" size="icon">
-            <Bell />
-          </Button>
-
+          {/* ✅ Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="rounded-full border p-1 w-8 h-8">
@@ -326,7 +324,36 @@ export const Header = ({
               </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
+              {/* ✅ Mobile: show StorageIndicator & Vakalatnama in dropdown */}
+              <div className="sm:hidden">
+                <DropdownMenuSeparator />
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-sm">
+                      <Download className="w-4 h-4" />
+                      Vakalatnama
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" side="left">
+                    <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleVakalatnamaDownload("english")}
+                    >
+                      English
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleVakalatnamaDownload("hindi")}
+                    >
+                      Hindi (हिंदी)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenuSeparator />
+              </div>
+
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>

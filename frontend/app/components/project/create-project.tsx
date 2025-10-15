@@ -38,7 +38,7 @@ import { Checkbox } from "../ui/checkbox";
 import { UseCreateProject } from "@/hooks/use-project";
 import { toast } from "sonner";
 import { useAuth } from "@/provider/auth-context";
-
+import React from "react";
 interface CreateProjectDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -218,7 +218,7 @@ export const CreateProjectDialog = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Description</FormLabel>
+                  <FormLabel>Case Description</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
@@ -260,87 +260,139 @@ export const CreateProjectDialog = ({
               <FormField
                 control={form.control}
                 name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <Popover modal={true}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant={"outline"}
-                            className={
-                              "w-full justify-start text-left font-normal" +
-                              (!field.value ? "text-muted-foreground" : "")
-                            }
-                          >
-                            <CalendarIcon className="size-4 mr-2" />
-                            {field.value ? (
-                              format(new Date(field.value), "PPPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent>
-                          <Calendar
-                            mode="single"
-                            selected={
-                              field.value ? new Date(field.value) : undefined
-                            }
-                            onSelect={(date) => {
-                              field.onChange(date?.toISOString() || undefined);
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [open, setOpen] = React.useState(false);
+                  const [tempDate, setTempDate] = React.useState<
+                    Date | undefined
+                  >(field.value ? new Date(field.value) : undefined);
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Popover
+                          open={open}
+                          onOpenChange={setOpen}
+                          modal={true}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant={"outline"}
+                              className={
+                                "w-full justify-start text-left font-normal " +
+                                (!field.value ? "text-muted-foreground" : "")
+                              }
+                            >
+                              <CalendarIcon className="size-4 mr-2" />
+                              {field.value ? (
+                                format(new Date(field.value), "PPPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+
+                          <PopoverContent className="flex flex-col space-y-3 p-3">
+                            <Calendar
+                              mode="single"
+                              selected={tempDate}
+                              onSelect={(date) =>
+                                setTempDate(date ?? undefined)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              className="bg-black text-white hover:bg-gray-800"
+                              onClick={() => {
+                                if (tempDate) {
+                                  field.onChange(tempDate.toISOString());
+                                  setOpen(false);
+                                } else {
+                                  toast.error(
+                                    "Please select a date before confirming."
+                                  );
+                                }
+                              }}
+                            >
+                              OK
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="dueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Due Date</FormLabel>
-                    <FormControl>
-                      <Popover modal={true}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant={"outline"}
-                            className={
-                              "w-full justify-start text-left font-normal" +
-                              (!field.value ? "text-muted-foreground" : "")
-                            }
-                          >
-                            <CalendarIcon className="size-4 mr-2" />
-                            {field.value ? (
-                              format(new Date(field.value), "PPPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent>
-                          <Calendar
-                            mode="single"
-                            selected={
-                              field.value ? new Date(field.value) : undefined
-                            }
-                            onSelect={(date) => {
-                              field.onChange(date?.toISOString() || undefined);
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [open, setOpen] = React.useState(false);
+                  const [tempDate, setTempDate] = React.useState<
+                    Date | undefined
+                  >(field.value ? new Date(field.value) : undefined);
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Due Date</FormLabel>
+                      <FormControl>
+                        <Popover
+                          open={open}
+                          onOpenChange={setOpen}
+                          modal={true}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant={"outline"}
+                              className={
+                                "w-full justify-start text-left font-normal " +
+                                (!field.value ? "text-muted-foreground" : "")
+                              }
+                            >
+                              <CalendarIcon className="size-4 mr-2" />
+                              {field.value ? (
+                                format(new Date(field.value), "PPPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+
+                          <PopoverContent className="flex flex-col space-y-3 p-3">
+                            <Calendar
+                              mode="single"
+                              selected={tempDate}
+                              onSelect={(date) =>
+                                setTempDate(date ?? undefined)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              className="bg-black text-white hover:bg-gray-800"
+                              onClick={() => {
+                                if (tempDate) {
+                                  field.onChange(tempDate.toISOString());
+                                  setOpen(false);
+                                } else {
+                                  toast.error(
+                                    "Please select a date before confirming."
+                                  );
+                                }
+                              }}
+                            >
+                              OK
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 

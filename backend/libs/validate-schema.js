@@ -59,7 +59,7 @@ const projectSchema = z.object({
       errorMap: () => ({ message: "Select a valid case status" }),
     }
   ),
-  startDate: z.string().min(1, "Start date is required"),
+  startDate: z.string().optional(),
   dueDate: z.string().optional(),
   tags: z.string().optional(),
   members: z
@@ -82,7 +82,7 @@ const taskSchema = z.object({
   description: z.string().optional(),
   status: z.enum(["To Do", "In Progress", "Review", "Done"]), // ✅ Added "Review"
   priority: z.enum(["Low", "Medium", "High"]),
-  dueDate: z.string().min(1, "Due date is required"),
+  dueDate: z.string().optional(),
   // ✅ REMOVED: assignees and clients - inherited from project
 });
 

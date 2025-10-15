@@ -42,8 +42,8 @@ export const projectSchema = z.object({
   name: z.string().max(80, "Title must be at Atmost 80 characters"),
   description: z.string().optional(),
   status: z.string(),
-  startDate: z.string().min(10, "Start date is required"),
-  dueDate: z.string().min(10, "Due date is required"),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional(),
   members: z
     .array(
       z.object({
@@ -62,7 +62,7 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   status: z.enum(["To Do", "In Progress", "Review", "Done"]),
   priority: z.enum(["Low", "Medium", "High"]),
-  dueDate: z.string().min(1, "Due date is required"),
+  dueDate: z.string().optional(),
   // ✅ REMOVED: assignees and clients - these come from project now
 });
 export const inviteMemberSchema = z.object({

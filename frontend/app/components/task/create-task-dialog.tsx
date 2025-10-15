@@ -490,6 +490,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
+import React from "react";
 import {
   Form,
   FormControl,
@@ -585,7 +586,7 @@ export const CreateTaskDialog = ({
                     <FormItem>
                       <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Enter case title" />
+                        <Input {...field} placeholder="Enter title" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -599,10 +600,7 @@ export const CreateTaskDialog = ({
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Enter case description"
-                        />
+                        <Textarea {...field} placeholder="Enter description" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -625,7 +623,7 @@ export const CreateTaskDialog = ({
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="To Do">Filed Cases</SelectItem>
+                              <SelectItem value="To Do">ToDo</SelectItem>
                               <SelectItem value="In Progress">
                                 Case In Progress
                               </SelectItem>
@@ -668,46 +666,71 @@ export const CreateTaskDialog = ({
                 <FormField
                   control={form.control}
                   name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date</FormLabel>
-                      <FormControl>
-                        <Popover modal={true}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant={"outline"}
-                              className={
-                                "w-full justify-start text-left font-normal" +
-                                (!field.value ? " text-muted-foreground" : "")
-                              }
-                            >
-                              <CalendarIcon className="size-4 mr-2" />
-                              {field.value ? (
-                                format(new Date(field.value), "PPPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent>
-                            <Calendar
-                              mode="single"
-                              selected={
-                                field.value ? new Date(field.value) : undefined
-                              }
-                              onSelect={(date) => {
-                                field.onChange(
-                                  date?.toISOString() || undefined
-                                );
-                              }}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const [open, setOpen] = React.useState(false);
+                    const [tempDate, setTempDate] = React.useState<
+                      Date | undefined
+                    >(field.value ? new Date(field.value) : undefined);
+
+                    return (
+                      <FormItem>
+                        <FormLabel>Due Date</FormLabel>
+                        <FormControl>
+                          <Popover
+                            open={open}
+                            onOpenChange={setOpen}
+                            modal={true}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant={"outline"}
+                                className={
+                                  "w-full justify-start text-left font-normal " +
+                                  (!field.value ? "text-muted-foreground" : "")
+                                }
+                              >
+                                <CalendarIcon className="size-4 mr-2" />
+                                {field.value ? (
+                                  format(new Date(field.value), "PPPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+
+                            <PopoverContent className="flex flex-col space-y-3 p-3">
+                              <Calendar
+                                mode="single"
+                                selected={tempDate}
+                                onSelect={(date) =>
+                                  setTempDate(date ?? undefined)
+                                }
+                              />
+
+                              <Button
+                                type="button"
+                                className="bg-black text-white hover:bg-gray-800"
+                                onClick={() => {
+                                  if (tempDate) {
+                                    field.onChange(tempDate.toISOString());
+                                    setOpen(false); // ✅ Close calendar
+                                  } else {
+                                    toast.error(
+                                      "Please select a date before confirming."
+                                    );
+                                  }
+                                }}
+                              >
+                                OK
+                              </Button>
+                            </PopoverContent>
+                          </Popover>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 {/* ✅ Read-only Assignees Display */}
@@ -723,7 +746,7 @@ export const CreateTaskDialog = ({
                         {projectAssignees.map((assignee) => (
                           <div
                             key={assignee._id}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                            className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium"
                           >
                             {assignee.name}
                           </div>
