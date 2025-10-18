@@ -81,12 +81,12 @@ export const MyEventsList: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Phone className="h-4 w-4" />
-                  <span>{event.phoneNumber}</span>
+                  <span>{event.phoneNumbers}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                {/* <div className="flex items-center gap-1">
                   <Building2 className="h-4 w-4" />
                   <span>{event.workspace}</span>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex items-center justify-between">

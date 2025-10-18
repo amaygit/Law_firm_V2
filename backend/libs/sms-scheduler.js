@@ -1,128 +1,111 @@
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import axios from "axios";
 import cron from "node-cron";
 import Event from "../models/event.js";
-
-// Initialize AWS SNS Client
-const snsClient = new SNSClient({
-  region: process.env.AWS_REGION || "eu-north-1", // Mumbai region for India
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID_SMS,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_SMS,
-  },
-});
 
 // Store scheduled jobs in memory
 const scheduledJobs = new Map();
 
 /**
- * Send SMS via AWS SNS
- * @param {string} phoneNumber - Phone number with country code (e.g., +919876543210)
+ * Send SMS via Fast2SMS
+ * @param {string} phoneNumber - Phone number WITHOUT country code (10 digits for India)
  * @param {string} message - SMS message text
  * @returns {Promise<Object>} - Result object
  */
-export const sendSMSViaSNS = async (phoneNumber, message) => {
+export const sendSMSViaSMSLocal = async (phoneNumber, message) => {
   try {
-    // Validate credentials
-    if (
-      !process.env.AWS_ACCESS_KEY_ID_SMS ||
-      !process.env.AWS_SECRET_ACCESS_KEY_SMS
-    ) {
-      throw new Error("AWS credentials not configured");
+    if (!process.env.SMSLOCAL_API_KEY) {
+      throw new Error("SMSLocal API key not configured");
     }
 
-    // ✅ Format phone number correctly
-    let formattedNumber = phoneNumber;
-
-    // Remove any non-digit characters except +
-    formattedNumber = formattedNumber.replace(/[^\d+]/g, "");
-
-    // Add + if not present
-    if (!formattedNumber.startsWith("+")) {
-      // Default to India country code if no country code
-      if (formattedNumber.length === 10) {
-        formattedNumber = "+91" + formattedNumber;
-      } else {
-        formattedNumber = "+" + formattedNumber;
-      }
+    // Format phone number to include +91
+    let formattedNumber = phoneNumber.replace(/\D/g, "");
+    if (formattedNumber.length === 10) {
+      formattedNumber = `91${formattedNumber}`;
     }
 
-    console.log(`📱 Sending SMS via AWS SNS to: ${formattedNumber}`);
+    // Construct the API request
+    const url = "https://www.smslocal.in/api/send/";
 
-    // Create SNS publish command
     const params = {
-      Message: message,
-      PhoneNumber: formattedNumber,
-      MessageAttributes: {
-        "AWS.SNS.SMS.SMSType": {
-          DataType: "String",
-          StringValue: "Transactional", // For important messages
-        },
-        "AWS.SNS.SMS.SenderID": {
-          DataType: "String",
-          StringValue: "SAAJNA", // Your sender ID (6 chars max)
-        },
-      },
+      api_key: process.env.SMSLOCAL_API_KEY,
+      message: message,
+      numbers: formattedNumber,
+      sender: process.env.SMSLOCAL_SENDER || "SAAJNA",
+      language: "english",
+      route: "quick",
     };
 
-    const command = new PublishCommand(params);
-    const result = await snsClient.send(command);
+    console.log(`📱 Sending SMS via SMSLocal to ${formattedNumber}`);
+    const response = await axios.post(url, params, {
+      headers: { "Content-Type": "application/json" },
+    });
 
-    console.log(`✅ SMS sent successfully! MessageId: ${result.MessageId}`);
-    return {
-      success: true,
-      messageId: result.MessageId,
-      phoneNumber: formattedNumber,
-    };
+    console.log("📥 SMSLocal Response:", response.data);
+
+    if (response.data.status === "success" || response.data.return === true) {
+      console.log("✅ SMS sent successfully");
+      return {
+        success: true,
+        messageId: response.data.message_id || response.data.batch_id,
+        phoneNumber: formattedNumber,
+        response: response.data,
+      };
+    } else {
+      console.error("❌ SMSLocal returned an error:", response.data);
+      return {
+        success: false,
+        error: response.data.message || "Unknown SMSLocal error",
+        phoneNumber: formattedNumber,
+      };
+    }
   } catch (error) {
     console.error("❌ Failed to send SMS:", error.message);
-
-    // Log specific AWS errors
-    if (error.name) {
-      console.error(`AWS Error: ${error.name}`);
+    if (error.response) {
+      console.error("❌ Response Data:", error.response.data);
     }
     return {
       success: false,
-      error: error.message,
+      error: error.response?.data?.message || error.message,
       phoneNumber,
     };
   }
 };
 
-/**
- * Send SMS to multiple phone numbers with rate limiting
- * @param {string[]} phoneNumbers - Array of phone numbers
- * @param {string} message - SMS message
- * @returns {Promise<Array>} - Array of results
- */
-export const sendSMSToMultiple = async (phoneNumbers, message) => {
-  const results = [];
+// /**
+//  * Send SMS to multiple phone numbers with rate limiting
+//  * @param {string[]} phoneNumbers - Array of phone numbers
+//  * @param {string} message - SMS message
+//  * @returns {Promise<Array>} - Array of results
+//  */
+// export const sendSMSToMultiple = async (phoneNumbers, message) => {
+//   const results = [];
 
-  for (const [index, phoneNumber] of phoneNumbers.entries()) {
-    try {
-      console.log(
-        `📤 Sending SMS ${index + 1}/${phoneNumbers.length} to ${phoneNumber}`
-      );
+//   for (const [index, phoneNumber] of phoneNumbers.entries()) {
+//     try {
+//       console.log(
+//         `📤 Sending SMS ${index + 1}/${phoneNumbers.length} to ${phoneNumber}`
+//       );
 
-      const result = await sendSMSViaSNS(phoneNumber, message);
-      results.push(result);
+//       const result = await sendSMSViaFast2SMS(phoneNumber, message);
+//       results.push(result);
 
-      // ✅ Rate limiting: Add delay between messages
-      if (index < phoneNumbers.length - 1) {
-        console.log(`⏳ Waiting 1 second before next SMS...`);
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
-      }
-    } catch (error) {
-      console.error(`❌ Failed to send to ${phoneNumber}:`, error.message);
-      results.push({
-        phoneNumber,
-        success: false,
-        error: error.message,
-      });
-    }
-  }
+//       // Rate limiting: Fast2SMS has limit of 1 SMS per second
+//       if (index < phoneNumbers.length - 1) {
+//         console.log(`⏳ Waiting 2 seconds before next SMS...`);
+//         await new Promise((resolve) => setTimeout(resolve, 2000));
+//       }
+//     } catch (error) {
+//       console.error(`❌ Failed to send to ${phoneNumber}:`, error.message);
+//       results.push({
+//         phoneNumber,
+//         success: false,
+//         error: error.message,
+//       });
+//     }
+//   }
 
-  return results;
-};
+//   return results;
+// };
 
 /**
  * Schedule SMS reminder for an event
@@ -132,31 +115,32 @@ export const sendSMSToMultiple = async (phoneNumbers, message) => {
 export const scheduleSMSReminder = async (event) => {
   const jobId = `event_${event._id}_${Date.now()}`;
 
-  // Create message content
-  const message = `🔔 REMINDER: ${event.title}
+  // Create message content - Keep it concise
+  const eventDateFormatted = new Date(event.dateTime).toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
+
+  const eventTimeFormatted = new Date(event.dateTime).toLocaleTimeString(
+    "en-IN",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+
+  const message = `REMINDER: ${event.title}
 
 ${event.description || "No description"}
 
-📅 Date: ${new Date(event.dateTime).toLocaleDateString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}
-
-⏰ Time: ${new Date(event.dateTime).toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}
+Date: ${eventDateFormatted}
+Time: ${eventTimeFormatted}
 
 - SAAJNA Legal`;
-
-  // Validate message length (SMS max 160 chars for single message)
-  if (message.length > 160) {
-    console.warn(
-      `⚠️ SMS message is ${message.length} chars (will be split into multiple SMS)`
-    );
-  }
 
   // Calculate when to send
   const eventDate = new Date(event.dateTime);
@@ -187,7 +171,7 @@ ${event.description || "No description"}
       console.log(`🔔 Sending SMS reminder for event: ${event.title}`);
 
       try {
-        // ✅ Send to all phone numbers
+        // Send to all phone numbers
         const results = await sendSMSToMultiple(event.phoneNumbers, message);
 
         // Check if at least one message was sent successfully
@@ -255,19 +239,57 @@ export const cancelScheduledSMS = (jobId) => {
   return false;
 };
 
+// /**
+//  * Send immediate test SMS (for testing)
+//  * @param {string} phoneNumber - Test phone number
+//  * @returns {Promise<Object>} - Result
+//  */
+// export const sendTestSMS = async (phoneNumber) => {
+//   const message = `Test SMS from SAAJNA Legal. This is a test message to verify SMS functionality. Time: ${new Date().toLocaleString(
+//     "en-IN"
+//   )}`;
+
+//   console.log(`🧪 Starting test SMS to ${phoneNumber}`);
+//   const result = await sendSMSViaFast2SMS(phoneNumber, message);
+//   console.log(`🧪 Test SMS result:`, result);
+
+//   return result;
+// };
+
 /**
- * Send immediate test SMS (for testing)
- * @param {string} phoneNumber - Test phone number
- * @returns {Promise<Object>} - Result
+ * Re-schedule existing events on server restart
+ * Call this function when server starts
  */
-export const sendTestSMS = async (phoneNumber) => {
-  const message = `🧪 Test SMS from SAAJNA Legal
+// export const rescheduleExistingEvents = async () => {
+//   try {
+//     console.log("🔄 Rescheduling existing events...");
 
-This is a test message to verify SMS functionality.
+//     const now = new Date();
 
-Time: ${new Date().toLocaleString("en-IN")}
+//     // Find all scheduled events in the future
+//     const upcomingEvents = await Event.find({
+//       status: "scheduled",
+//       dateTime: { $gt: now },
+//     });
 
-If you received this, SMS is working correctly! ✅`;
+//     console.log(`Found ${upcomingEvents.length} upcoming events to reschedule`);
 
-  return await sendSMSViaSNS(phoneNumber, message);
-};
+//     for (const event of upcomingEvents) {
+//       try {
+//         const jobId = await scheduleSMSReminder(event);
+//         if (jobId) {
+//           // Update the event with new job ID
+//           event.reminderJobId = jobId;
+//           await event.save();
+//           console.log(`✅ Rescheduled: ${event.title}`);
+//         }
+//       } catch (error) {
+//         console.error(`❌ Failed to reschedule ${event.title}:`, error.message);
+//       }
+//     }
+
+//     console.log("✅ Event rescheduling complete");
+//   } catch (error) {
+//     console.error("❌ Error rescheduling events:", error);
+//   }
+// };
