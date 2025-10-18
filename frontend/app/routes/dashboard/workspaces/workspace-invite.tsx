@@ -52,7 +52,7 @@ const WorkspaceInvite = () => {
       acceptInviteByToken(token, {
         onSuccess: () => {
           toast.success("Invitation accepted");
-          navigate(`/workspaces/${workspaceId}`);
+          navigate(`/my-tasks`);
         },
         onError: (error: any) => {
           toast.error(error.response.data.message);
@@ -63,7 +63,7 @@ const WorkspaceInvite = () => {
       acceptGenerateInvite(workspaceId, {
         onSuccess: () => {
           toast.success("Invitation accepted");
-          navigate(`/workspaces/${workspaceId}`);
+          navigate(`/my-tasks`);
         },
         onError: (error: any) => {
           toast.error(error.response.data.message);

@@ -236,7 +236,7 @@ export const Header = ({
                         name={selectedWorkspace.name}
                       />
                     )}
-                    <span className="font-medium">
+                    <span className="font-medium max-w-[150px] truncate sm:max-w-none">
                       {selectedWorkspace?.name}
                     </span>
                   </>

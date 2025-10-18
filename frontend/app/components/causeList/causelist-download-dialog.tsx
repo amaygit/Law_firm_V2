@@ -287,11 +287,11 @@ export const CauseListDownloadDialog = () => {
         {/* Info section */}
         <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Note:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Select court to see available dates</li>
-            <li>Select date to see available court numbers</li>
-            <li>PDF will be downloaded automatically</li>
-          </ul>
+          <p>
+            It downloads the Cause List for the Allahabad High Court by
+            navigating through the Combined Cause List section and selecting the
+            Court-Wise option.
+          </p>
         </div>
       </DialogContent>
     </Dialog>

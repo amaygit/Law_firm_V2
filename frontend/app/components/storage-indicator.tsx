@@ -138,8 +138,7 @@ export const StorageIndicator = () => {
           )}
 
           <div className="text-xs text-muted-foreground">
-            <p>• Counts files from all workspaces you own</p>
-            <p>• Limit applies per workspace owner</p>
+            <p>• Upload file size is added on Task owner</p>
             <p>• Maximum 50MB per individual file</p>
           </div>
         </div>
