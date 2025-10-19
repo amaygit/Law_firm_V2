@@ -101,41 +101,52 @@ const Members = () => {
               </CardDescription>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="overflow-x-hidden">
               <div className="divide-y">
                 {filteredMembers.map((member) => (
                   <div
                     key={member.user._id}
-                    className="flex flex-col md:flex-row items-center justify-between p-4 gap-3"
+                    className="flex items-start gap-3 p-4 overflow-hidden"
                   >
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="bg-gray-500">
-                        <AvatarImage src={member.user.profilePicture} />
-                        <AvatarFallback>
-                          {member.user.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{member.user.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {member.user.email}
-                        </p>
+                    {/* Left section - Avatar */}
+                    <Avatar className="bg-gray-500 flex-shrink-0 mt-1 w-10 h-10">
+                      <AvatarImage src={member.user.profilePicture} />
+                      <AvatarFallback>
+                        {member.user.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {/* Right section - All info */}
+                    <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
+                      {/* Name */}
+                      <p className="font-medium text-gray-900 leading-tight truncate">
+                        {member.user.name}
+                      </p>
+
+                      {/* Email - 20 chars per line on mobile */}
+                      <p className="text-sm text-gray-500 leading-tight break-all md:break-words line-clamp-2 max-w-[22ch] md:max-w-none">
+                        {member.user.email}
+                      </p>
+
+                      {/* Badges row - Role and Workspace */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <Badge
+                          variant={
+                            ["admin", "owner"].includes(member.role)
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="capitalize flex-shrink-0"
+                        >
+                          {member.role}
+                        </Badge>
+                        {/* <Badge
+                          variant="outline"
+                          className="break-all md:break-normal line-clamp-2 max-w-[20ch] md:max-w-[200px]"
+                        >
+                          {data.name}
+                        </Badge> */}
                       </div>
-                    </div>
-
-                    <div className="flex items-center space-x-1 ml-11 md:ml-0">
-                      <Badge
-                        variant={
-                          ["admin", "owner"].includes(member.role)
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className="capitalize"
-                      >
-                        {member.role}
-                      </Badge>
-
-                      <Badge variant={"outline"}>{data.name}</Badge>
                     </div>
                   </div>
                 ))}
@@ -146,34 +157,40 @@ const Members = () => {
 
         {/* BOARD VIEW */}
         <TabsContent value="board">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
             {filteredMembers.map((member) => (
-              <Card key={member.user._id} className="">
-                <CardContent className="p-6 flex flex-col items-center text-center">
-                  <Avatar className="bg-gray-500 size-20 mb-4">
+              <Card key={member.user._id} className="break-words">
+                <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
+                  <Avatar className="bg-gray-500 size-20">
                     <AvatarImage src={member.user.profilePicture} />
                     <AvatarFallback className="uppercase">
                       {member.user.name.substring(0, 2)}
                     </AvatarFallback>
                   </Avatar>
 
-                  <h3 className="text-lg font-medium mb-2">
+                  <h3 className="text-lg font-medium break-words">
                     {member.user.name}
                   </h3>
 
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500 break-all">
                     {member.user.email}
                   </p>
 
-                  <Badge
-                    variant={
-                      ["admin", "owner"].includes(member.role)
-                        ? "destructive"
-                        : "secondary"
-                    }
-                  >
-                    {member.role}
-                  </Badge>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Badge
+                      variant={
+                        ["admin", "owner"].includes(member.role)
+                          ? "destructive"
+                          : "secondary"
+                      }
+                      className="capitalize"
+                    >
+                      {member.role}
+                    </Badge>
+                    <Badge variant="outline" className="truncate max-w-[150px]">
+                      {data.name}
+                    </Badge>
+                  </div>
                 </CardContent>
               </Card>
             ))}

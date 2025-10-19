@@ -31,6 +31,7 @@
     "morgan": "^1.10.0",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
+    "puppeteer": "^24.25.0",
     "zod": "^3.25.74",
     "zod-express-middleware": "^1.4.0"
   },

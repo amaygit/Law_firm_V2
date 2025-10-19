@@ -1,21 +1,22 @@
-// backend/routes/causelist.js
 import express from "express";
 import {
-  fetchAvailableDates,
-  fetchAvailableCourts,
-  downloadCauseList,
+  fetchAllahabadDates,
+  fetchAllahabadCourts,
+  downloadAllahabadCauseList,
+  fetchKarnatakaCourts,
+  downloadKarnatakaCauseList,
 } from "../controllers/causelist.js";
 import authMiddleware from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
-// Fetch available dates
-router.post("/fetch-dates", authMiddleware, fetchAvailableDates);
+// ========== ALLAHABAD ROUTES ==========
+router.post("/allahabad/fetch-dates", authMiddleware, fetchAllahabadDates);
+router.post("/allahabad/fetch-courts", authMiddleware, fetchAllahabadCourts);
+router.post("/allahabad/download", authMiddleware, downloadAllahabadCauseList);
 
-// Fetch available courts for a date
-router.post("/fetch-courts", authMiddleware, fetchAvailableCourts);
-
-// Download cause list PDF
-router.post("/download", authMiddleware, downloadCauseList);
+// ========== KARNATAKA ROUTES ==========
+router.post("/karnataka/fetch-courts", authMiddleware, fetchKarnatakaCourts);
+router.post("/karnataka/download", authMiddleware, downloadKarnatakaCauseList);
 
 export default router;
