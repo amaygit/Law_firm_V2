@@ -187,9 +187,9 @@ const Members = () => {
                     >
                       {member.role}
                     </Badge>
-                    <Badge variant="outline" className="truncate max-w-[150px]">
+                    {/* <Badge variant="outline" className="truncate max-w-[150px]">
                       {data.name}
-                    </Badge>
+                    </Badge> */}
                   </div>
                 </CardContent>
               </Card>
