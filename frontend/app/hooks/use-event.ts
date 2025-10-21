@@ -1,19 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchData, postData, updateData, deleteData } from "@/lib/fetch-util";
 
-// ✅ UPDATED: Event interface (workspace independent, multiple phone numbers)
 export interface Event {
   _id: string;
   title: string;
   description?: string;
   dateTime: string;
-  phoneNumbers: string[]; // ✅ Changed to array
   createdBy: {
     _id: string;
     name: string;
     email: string;
   };
-  // ✅ REMOVED: workspace field
   notificationSent: boolean;
   reminderJobId?: string;
   status: "scheduled" | "completed" | "cancelled";
@@ -29,16 +26,12 @@ export const useCreateEvent = () => {
       title: string;
       description?: string;
       dateTime: string;
-      phoneNumbers: string[];
     }) => postData("/events", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
-      // ✅ REMOVED: workspace events query invalidation
     },
   });
 };
-
-// ✅ REMOVED: useGetEvents (workspace-specific events)
 
 export const useGetMyEvents = () => {
   return useQuery<{
@@ -65,7 +58,6 @@ export const useUpdateEvent = () => {
       title?: string;
       description?: string;
       dateTime?: string;
-      phoneNumbers?: string[];
     }) => {
       const { eventId, ...updatePayload } = data;
       return updateData(`/events/${eventId}`, updatePayload);
@@ -84,5 +76,12 @@ export const useDeleteEvent = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
     },
+  });
+};
+
+// Test email hook
+export const useTestEmail = () => {
+  return useMutation({
+    mutationFn: () => postData("/events/test-email", {}),
   });
 };

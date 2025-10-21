@@ -1,31 +1,16 @@
 import Event from "../models/event.js";
 import {
-  scheduleSMSReminder,
-  cancelScheduledSMS,
-} from "../libs/sms-scheduler.js";
+  scheduleEmailReminder,
+  cancelScheduledEmail,
+  sendTestEmail,
+} from "../libs/email-scheduler.js";
 
-// Create event with SMS reminder
+// Create event with email reminder
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, dateTime, phoneNumbers } = req.body;
+    const { title, description, dateTime } = req.body;
     const userId = req.user._id;
-
-    // ✅ Validation: Check phoneNumbers array
-    if (
-      !phoneNumbers ||
-      !Array.isArray(phoneNumbers) ||
-      phoneNumbers.length === 0
-    ) {
-      return res.status(400).json({
-        message: "At least one phone number is required",
-      });
-    }
-
-    if (phoneNumbers.length > 2) {
-      return res.status(400).json({
-        message: "Maximum 2 phone numbers allowed",
-      });
-    }
+    const userEmail = req.user.email;
 
     // Validate date is in future
     const eventDate = new Date(dateTime);
@@ -35,39 +20,26 @@ export const createEvent = async (req, res) => {
       });
     }
 
-    // Clean phone numbers
-    const cleanedPhoneNumbers = phoneNumbers
-      .map((phone) => phone.replace(/\D/g, ""))
-      .filter((phone) => phone.length >= 10);
-
-    if (cleanedPhoneNumbers.length === 0) {
-      return res.status(400).json({
-        message: "Please provide valid phone numbers",
-      });
-    }
-
     // Create event
     const newEvent = await Event.create({
       title,
       description,
       dateTime: eventDate,
       createdBy: userId,
-      phoneNumbers: cleanedPhoneNumbers,
     });
 
-    // Schedule SMS reminders
+    // Schedule email reminder
     try {
-      const jobId = await scheduleSMSReminder(newEvent);
+      const jobId = await scheduleEmailReminder(newEvent, userEmail);
       newEvent.reminderJobId = jobId;
       await newEvent.save();
     } catch (scheduleError) {
-      console.error("Failed to schedule SMS:", scheduleError);
-      // Event is created but notification scheduling failed
+      console.error("Failed to schedule email:", scheduleError);
     }
 
     res.status(201).json({
       success: true,
-      message: "Event created successfully with SMS reminders",
+      message: "Event created successfully with email reminder",
       event: newEvent,
     });
   } catch (error) {
@@ -83,8 +55,9 @@ export const createEvent = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { title, description, dateTime, phoneNumbers } = req.body;
+    const { title, description, dateTime } = req.body;
     const userId = req.user._id;
+    const userEmail = req.user.email;
 
     const event = await Event.findById(eventId);
     if (!event) {
@@ -102,46 +75,14 @@ export const updateEvent = async (req, res) => {
       });
     }
 
-    // Validate phoneNumbers if provided
-    if (phoneNumbers) {
-      if (!Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one phone number is required",
-        });
-      }
-
-      if (phoneNumbers.length > 2) {
-        return res.status(400).json({
-          success: false,
-          message: "Maximum 2 phone numbers allowed",
-        });
-      }
-    }
-
-    // Cancel existing scheduled SMS
+    // Cancel existing scheduled email
     if (event.reminderJobId) {
-      cancelScheduledSMS(event.reminderJobId);
+      cancelScheduledEmail(event.reminderJobId);
     }
 
     // Update event fields
     if (title) event.title = title;
     if (description !== undefined) event.description = description;
-
-    if (phoneNumbers) {
-      const cleanedPhoneNumbers = phoneNumbers
-        .map((phone) => phone.replace(/\D/g, ""))
-        .filter((phone) => phone.length >= 10);
-
-      if (cleanedPhoneNumbers.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Please provide valid phone numbers",
-        });
-      }
-
-      event.phoneNumbers = cleanedPhoneNumbers;
-    }
 
     if (dateTime) {
       const newEventDate = new Date(dateTime);
@@ -156,13 +97,13 @@ export const updateEvent = async (req, res) => {
 
     await event.save();
 
-    // Reschedule SMS
+    // Reschedule email
     try {
-      const jobId = await scheduleSMSReminder(event);
+      const jobId = await scheduleEmailReminder(event, userEmail);
       event.reminderJobId = jobId;
       await event.save();
     } catch (scheduleError) {
-      console.error("Failed to reschedule SMS:", scheduleError);
+      console.error("Failed to reschedule email:", scheduleError);
     }
 
     res.json({
@@ -201,9 +142,9 @@ export const deleteEvent = async (req, res) => {
       });
     }
 
-    // Cancel scheduled SMS
+    // Cancel scheduled email
     if (event.reminderJobId) {
-      cancelScheduledSMS(event.reminderJobId);
+      cancelScheduledEmail(event.reminderJobId);
     }
 
     await Event.findByIdAndDelete(eventId);
@@ -250,6 +191,37 @@ export const getMyEvents = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+// Test email endpoint
+export const testEmail = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    console.log("📧 Testing email functionality...");
+
+    const result = await sendTestEmail(userEmail);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: `Test email sent successfully to ${userEmail}`,
+        details: result,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Failed to send test email",
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error sending test email:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
