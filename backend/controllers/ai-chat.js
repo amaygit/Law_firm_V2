@@ -1,5 +1,6 @@
 // // backend/controllers/ai-chat.js
 // import Task from "../models/task.js";
+// import Comment from "../models/comment.js";
 // import {
 //   generateCaseSummary,
 //   searchSimilarCases,
@@ -8,14 +9,14 @@
 // } from "../libs/gemini-ai.js";
 
 // /**
-//  * Initialize AI chat for a case - Get summary and similar cases
+//  * ✅ FIX: Initialize AI chat - Include comments in context
 //  */
 // export const initializeCaseAI = async (req, res) => {
 //   try {
 //     const { taskId } = req.params;
 //     const userId = req.user._id;
 
-//     // Get task and verify access
+//     // Get task with comments
 //     const task = await Task.findById(taskId)
 //       .populate("assignees", "name email")
 //       .populate("clients", "name email");
@@ -27,7 +28,7 @@
 //       });
 //     }
 
-//     // Check if user has access to this task
+//     // Check access
 //     const hasAccess =
 //       task.createdBy.toString() === userId.toString() ||
 //       task.assignees.some((a) => a._id.toString() === userId.toString()) ||
@@ -41,6 +42,15 @@
 //     }
 
 //     console.log(`🤖 Initializing AI for case: ${task.title}`);
+
+//     // ✅ FIX: Fetch comments and add to task object
+//     const comments = await Comment.find({ resource: taskId })
+//       .populate("user", "name")
+//       .sort({ createdAt: 1 })
+//       .limit(20); // Include recent comments
+
+//     // Add comments to task object for AI context
+//     task.comments = comments;
 
 //     // Generate summary and search similar cases in parallel
 //     const [summary, similarCases] = await Promise.all([
@@ -65,7 +75,7 @@
 // };
 
 // /**
-//  * Chat with AI about a specific case
+//  * ✅ FIX: Chat with AI - Include comments in context
 //  */
 // export const chatWithCase = async (req, res) => {
 //   try {
@@ -80,7 +90,7 @@
 //       });
 //     }
 
-//     // Get task and verify access
+//     // Get task with comments
 //     const task = await Task.findById(taskId)
 //       .populate("assignees", "name")
 //       .populate("clients", "name");
@@ -105,7 +115,15 @@
 //       });
 //     }
 
-//     // Validate question relevance (security check)
+//     // ✅ FIX: Fetch comments and add to task
+//     const comments = await Comment.find({ resource: taskId })
+//       .populate("user", "name")
+//       .sort({ createdAt: 1 })
+//       .limit(20);
+
+//     task.comments = comments;
+
+//     // ✅ FIX: More lenient validation - allow general law questions
 //     const isRelevant = await isQuestionRelevant(message, task.title);
 
 //     if (!isRelevant) {
@@ -114,12 +132,13 @@
 //         response: `I can only discuss details about the current case: "${task.title}". I cannot provide information about other cases in the database.
 
 // However, I can help you with:
-// - Details about THIS case's hearings and progress
-// - Legal advice related to THIS case type
-// - Next steps and strategies for THIS case
-// - General legal information and precedents
+// - Details about THIS case's hearings, comments, and progress
+// - General legal advice and Indian law concepts
+// - Legal strategies for THIS case type
+// - Public precedents and famous cases
+// - Legal terminology and procedures
 
-// How can I assist you with THIS case?`,
+// How can I assist you with THIS case or general legal matters?`,
 //       });
 //     }
 
@@ -202,6 +221,7 @@
 //     });
 //   }
 // };
+
 // backend/controllers/ai-chat.js
 import Task from "../models/task.js";
 import Comment from "../models/comment.js";
@@ -210,17 +230,68 @@ import {
   searchSimilarCases,
   chatWithCaseAI,
   isQuestionRelevant,
+  scanAttachment,
 } from "../libs/gemini-ai.js";
 
 /**
- * ✅ FIX: Initialize AI chat - Include comments in context
+ * Get similar cases only
  */
-export const initializeCaseAI = async (req, res) => {
+export const getSimilarCases = async (req, res) => {
   try {
     const { taskId } = req.params;
     const userId = req.user._id;
 
-    // Get task with comments
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Case not found",
+      });
+    }
+
+    // Check access
+    const hasAccess =
+      task.createdBy.toString() === userId.toString() ||
+      task.assignees.some((a) => a._id.toString() === userId.toString()) ||
+      task.clients.some((c) => c._id.toString() === userId.toString());
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access to this case",
+      });
+    }
+
+    console.log(`🔍 Searching similar cases for: ${task.title}`);
+
+    const similarCases = await searchSimilarCases(
+      task.title,
+      task.courtName,
+      task.description
+    );
+
+    res.json({
+      success: true,
+      similarCases,
+    });
+  } catch (error) {
+    console.error("Error fetching similar cases:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch similar cases",
+    });
+  }
+};
+
+/**
+ * Generate summary only
+ */
+export const getCaseSummary = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const userId = req.user._id;
+
     const task = await Task.findById(taskId)
       .populate("assignees", "name email")
       .populate("clients", "name email");
@@ -245,41 +316,99 @@ export const initializeCaseAI = async (req, res) => {
       });
     }
 
-    console.log(`🤖 Initializing AI for case: ${task.title}`);
+    console.log(`📝 Generating summary for: ${task.title}`);
 
-    // ✅ FIX: Fetch comments and add to task object
+    // Fetch comments for context
     const comments = await Comment.find({ resource: taskId })
       .populate("user", "name")
       .sort({ createdAt: 1 })
-      .limit(20); // Include recent comments
+      .limit(20);
 
-    // Add comments to task object for AI context
     task.comments = comments;
 
-    // Generate summary and search similar cases in parallel
-    const [summary, similarCases] = await Promise.all([
-      generateCaseSummary(task),
-      searchSimilarCases(task.title, task.courtName, task.description),
-    ]);
+    const summary = await generateCaseSummary(task);
 
     res.json({
       success: true,
       summary,
-      similarCases,
-      caseTitle: task.title,
-      caseId: task._id,
     });
   } catch (error) {
-    console.error("Error initializing case AI:", error);
+    console.error("Error generating summary:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to initialize AI assistant",
+      message: "Failed to generate summary",
     });
   }
 };
 
 /**
- * ✅ FIX: Chat with AI - Include comments in context
+ * Scan attachment and provide analysis
+ */
+export const scanTaskAttachment = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { attachmentId, fileName, fileUrl } = req.body;
+    const userId = req.user._id;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Case not found",
+      });
+    }
+
+    // Check access
+    const hasAccess =
+      task.createdBy.toString() === userId.toString() ||
+      task.assignees.some((a) => a._id.toString() === userId.toString()) ||
+      task.clients.some((c) => c._id.toString() === userId.toString());
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access to this case",
+      });
+    }
+
+    console.log(`📎 Scanning attachment: ${fileName} for case: ${task.title}`);
+
+    // Verify attachment exists
+    const attachment = task.attachments.find(
+      (att) => att._id.toString() === attachmentId
+    );
+
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        message: "Attachment not found",
+      });
+    }
+
+    const analysis = await scanAttachment(
+      fileName,
+      fileUrl,
+      task.title,
+      task.description
+    );
+
+    res.json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    console.error("Error scanning attachment:", error);
+    res.status(500).json({
+      success: false,
+      message:
+        "Failed to scan attachment. The file might be in an unsupported format.",
+    });
+  }
+};
+
+/**
+ * Chat with AI about a specific case
  */
 export const chatWithCase = async (req, res) => {
   try {
@@ -294,7 +423,6 @@ export const chatWithCase = async (req, res) => {
       });
     }
 
-    // Get task with comments
     const task = await Task.findById(taskId)
       .populate("assignees", "name")
       .populate("clients", "name");
@@ -319,7 +447,7 @@ export const chatWithCase = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Fetch comments and add to task
+    // Fetch comments for context
     const comments = await Comment.find({ resource: taskId })
       .populate("user", "name")
       .sort({ createdAt: 1 })
@@ -327,22 +455,28 @@ export const chatWithCase = async (req, res) => {
 
     task.comments = comments;
 
-    // ✅ FIX: More lenient validation - allow general law questions
+    // Validate question relevance (only block non-legal questions)
     const isRelevant = await isQuestionRelevant(message, task.title);
 
     if (!isRelevant) {
       return res.json({
         success: true,
-        response: `I can only discuss details about the current case: "${task.title}". I cannot provide information about other cases in the database. 
+        response: `I can only answer questions related to law and legal matters. 
 
-However, I can help you with:
-- Details about THIS case's hearings, comments, and progress
-- General legal advice and Indian law concepts
-- Legal strategies for THIS case type
-- Public precedents and famous cases
-- Legal terminology and procedures
+I can help you with:
+- Legal concepts, laws, and regulations (worldwide)
+- Indian legal system (IPC, CrPC, Constitution, etc.)
+- Case strategies and legal procedures
+- Legal precedents and famous cases
+- This case's hearings, comments, and progress
+- International law and comparative legal systems
 
-How can I assist you with THIS case or general legal matters?`,
+However, I cannot answer questions about:
+- Restaurants, travel, entertainment
+- General knowledge unrelated to law
+- Personal advice outside legal matters
+
+Please ask a legal question or something related to this case.`,
       });
     }
 
@@ -350,7 +484,6 @@ How can I assist you with THIS case or general legal matters?`,
       `💬 AI Chat for case "${task.title}": ${message.substring(0, 50)}...`
     );
 
-    // Get AI response
     const aiResponse = await chatWithCaseAI(task, message, chatHistory || []);
 
     res.json({
@@ -367,7 +500,7 @@ How can I assist you with THIS case or general legal matters?`,
 };
 
 /**
- * Analyze case and provide insights
+ * Analyze case strength
  */
 export const analyzeCaseStrength = async (req, res) => {
   try {
