@@ -208,10 +208,10 @@ const TaskDetails = () => {
         </div> */}
         {/* RIGHT SECTION (Action Buttons) */}
         {/* RIGHT SECTION (Action Buttons) */}
-        <div className="flex items-center justify-end gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+
+        {/* <div className="flex items-center justify-end gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
           {!isClient && (
             <>
-              {/* ✅ Always visible SAJNA button */}
               <Button
                 onClick={() => setIsAIChatOpen(true)}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-2.5 sm:px-3 text-xs sm:text-sm"
@@ -221,7 +221,6 @@ const TaskDetails = () => {
                 SAJNA
               </Button>
 
-              {/* ✅ Desktop Buttons (visible ≥640px) */}
               <div className="hidden sm:flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -262,7 +261,6 @@ const TaskDetails = () => {
                 )}
               </div>
 
-              {/* ✅ Mobile Dropdown (visible <640px) */}
               <div className="sm:hidden">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -312,6 +310,114 @@ const TaskDetails = () => {
                         </div>
                       </DropdownMenuItem>
                     )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </>
+          )}
+        </div> */}
+
+        {/* RIGHT SECTION - Mobile & Desktop */}
+        <div className="flex items-center justify-end gap-2 overflow-x-auto no-scrollbar">
+          {!isClient && (
+            <>
+              {/* SAJNA Button - Always visible */}
+              <Button
+                onClick={() => setIsAIChatOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-2.5 sm:px-3 text-xs sm:text-sm flex-shrink-0"
+                size="sm"
+              >
+                <Bot className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                SAJNA
+              </Button>
+
+              {/* Desktop Buttons (≥640px) */}
+              <div className="hidden sm:flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWatchTask}
+                  disabled={isWatching}
+                >
+                  {isUserWatching ? (
+                    <>
+                      <EyeOff className="mr-1 h-4 w-4" />
+                      Unwatch
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-1 h-4 w-4" />
+                      Watch
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAchievedTask}
+                  disabled={isAchieved}
+                >
+                  {task.isArchived ? "Unarchive" : "Archive"}
+                </Button>
+
+                {task._id && (
+                  <FileUploadButton
+                    taskId={task._id}
+                    onUploadSuccess={triggerFilesRefresh}
+                    disabled={isClient}
+                  />
+                )}
+              </div>
+
+              {/* Mobile: Upload + Dropdown (<640px) */}
+              <div className="sm:hidden flex items-center gap-2">
+                {/* Upload Button - Separate for mobile */}
+                {task._id && (
+                  <FileUploadButton
+                    taskId={task._id}
+                    onUploadSuccess={triggerFilesRefresh}
+                    disabled={isClient}
+                  />
+                )}
+
+                {/* Actions Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2.5 flex-shrink-0"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem
+                      onClick={handleWatchTask}
+                      disabled={isWatching}
+                    >
+                      {isUserWatching ? (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          Unwatch
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Watch
+                        </>
+                      )}
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={handleAchievedTask}
+                      disabled={isAchieved}
+                    >
+                      <Archive className="mr-2 h-4 w-4" />
+                      {task.isArchived ? "Unarchive" : "Archive"}
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

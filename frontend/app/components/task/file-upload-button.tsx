@@ -130,7 +130,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         className="w-fit"
       >
         <Upload className="mr-2 h-4 w-4" />
-        {uploading ? "Uploading..." : "Upload File"}
+        {uploading ? "Uploading" : "Upload"}
       </Button>
     </>
   );
