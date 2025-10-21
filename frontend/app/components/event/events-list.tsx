@@ -84,7 +84,9 @@ export const MyEventsList: React.FC = () => {
     );
   }
 
-  const events = data?.events || [];
+  const events = (data?.events || []).sort(
+    (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
+  );
 
   if (events.length === 0) {
     return (
