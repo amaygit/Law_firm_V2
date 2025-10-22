@@ -64,6 +64,7 @@ body {
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
   --primary: oklch(0.208 0.042 265.755);
+  --primary-land:oklch(0.6 0.14 300);
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
@@ -80,6 +81,7 @@ body {
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+  --chart-6: oklch(0.6 0.14 300);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
@@ -91,29 +93,30 @@ body {
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+--background: hsl(240 10% 5%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(240 10% 7.5%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 10% 7.5%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(243.4 75.4% 58.6%);
+  --primary-foreground: hsl(225.9 100% 96.7%);
+  --secondary: hsl(240 3.7% 15.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 3.7% 15.9%);
+  --muted-foreground: hsl(240 5% 64.9%);
+  --accent: hsl(240 3.7% 15.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 3.7% 10%);
+  --input: hsl(240 3.7% 15.9%);
+  --ring: hsl(240 4.9% 83.9%);
+  --chart-1: hsl(220 100% 70%);
+  --chart-2: hsl(340 100% 70%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(160 60% 45%);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -124,11 +127,120 @@ body {
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+.text-primary-land {
+  color: oklch(0.6 0.14 300)
+  ;
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background 
+    text-foreground
+    ;
+  }
+
+  ::-webkit-scrollbar{
+    @apply w-2
+    h-2;
+  }
+
+  ::-webkit-scrollbar-thumb{
+    @apply bg-foreground/20
+    rounded-full
+
+    hover:bg-foreground/30;
+  }
+}
+
+@layer utilities{
+  .container{
+    @apply px-4
+    mx-auto
+
+    2xl:max-w-screen-xl;
+  }
+  .section{
+    @apply py-8
+
+    md:py-16;
+  }
+
+  .section-head{
+    @apply pb-8
+    text-center
+
+    md:pb-16
+
+    lg:max-w-screen-sm
+    lg:mx-auto;
+  }
+
+   .section-subtitle {
+    @apply text-primary;
+  }
+
+  .section-title{
+   @apply text-3xl
+   font-semibold
+   leading-snug
+   py-3
+   md:text-[40px];
+  }
+  .section-text{
+    @apply text-sidebar-ring
+    md:text-xl;
+  }
+  
+}
+
+.menu-link {
+  background: oklch(0.129 0.042 264.695);
+  color: #fff;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  border-radius: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+.menu-link:hover, .menu-link:focus {
+  background: oklch(0.95 0.01 264.695); /* near white on hover */
+  color: #000;                         /* black text for contrast */
+}
+
+.menu-trigger {
+  background: oklch(0.129 0.042 264.695); /* your dark color */
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Active and focus should KEEP the same background */
+.menu-trigger[data-state="open"], .menu-trigger:focus {
+  background: oklch(0.129 0.042 264.695); /* keep your dark background */
+  color: #fff;
+}
+
+/* Hover can be a slightly lighter variant if you want, or same as base: */
+.menu-trigger:hover:not([data-state="open"]) {
+  background: oklch(0.18 0.042 264.695); /* slightly lighter, or use same base for no color change */
+  color: #fff;
+}
+
+.menu-content {
+  background: oklch(0.129 0.042 264.695);
+  color: #fff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+
+.hero-image {
+  max-height: 300px;
+}
+
+@media (min-width: 1024px) {
+  .hero-image {
+    max-height: 450px;
   }
 }

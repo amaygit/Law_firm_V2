@@ -248,3 +248,17 @@ export interface Event {
   createdAt: string;
   updatedAt: string;
 }
+
+
+export type MenuItem = {
+  href: string;
+  label: string;
+  submenu?: SubmenuItem[]
+};
+
+type SubmenuItem = {
+  href: string;
+  icon: JSX.ReactNode;
+  label: string;
+  desc: string;
+}

@@ -166,6 +166,7 @@ export const Header = ({
   const isOnWorkspacePage = location.pathname.includes("/workspace");
 
   // ✅ Check if we're on the dashboard page
+  // Track if on dashboard
   const isOnDashboard =
     location.pathname === "/dashboard" ||
     location.pathname.startsWith("/dashboard/") ||
@@ -183,6 +184,18 @@ export const Header = ({
       navigate(`${basePath}?workspaceId=${workspace._id}`);
     }
   };
+
+  // Logout handler: calls logout and then navigates to '/'
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      toast.error("Logout failed, please try again.");
+      console.error("Logout error:", error);
+    }
+  };
+
 
   // ✅ Handle Vakalatnama download
   const handleVakalatnamaDownload = (language: "english" | "hindi") => {
@@ -360,7 +373,7 @@ export const Header = ({
                 <Link to="/user/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>Log Out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Log Out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

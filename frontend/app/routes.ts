@@ -6,14 +6,21 @@ import {
 } from "@react-router/dev/routes";
 
 export default [
+  // Public landing page layout with home
+layout("routes/root/public-layout.tsx", [
+  index("routes/root/home.tsx"),
+]),
+
+
+
   layout("routes/auth/auth-layout.tsx", [
-    index("routes/root/home.tsx"),
     route("sign-in", "routes/auth/sign-in.tsx"),
     route("sign-up", "routes/auth/sign-up.tsx"),
     route("forgot-password", "routes/auth/forgot-password.tsx"),
     route("reset-password", "routes/auth/reset-password.tsx"),
     route("verify-email", "routes/auth/verify-email.tsx"),
   ]),
+
   layout("routes/dashboard/dashboard-layout.tsx", [
     route("dashboard", "routes/dashboard/index.tsx"),
     route("workspaces", "routes/dashboard/workspaces/index.tsx"),
@@ -30,24 +37,17 @@ export default [
       "routes/dashboard/task/task-details.tsx"
     ),
     route("settings", "routes/dashboard/settings.tsx"),
-
     route(
       "workspaces/:workspaceId/settings",
       "routes/dashboard/workspaces/workspace-settings.tsx"
     ),
     route("achieved", "routes/dashboard/select-workspace.tsx"),
-    //  route("dashboard/:workspaceId/achived", "routes/dashboard/task/achieved.tsx"),
     route("dashboard/ai", "routes/dashboard/ai.tsx"),
-
-    // route(
-    //   "dashboard/:workspaceId/tasks",
-    //   "routes/dashboard/task/achieved.tsx"
-    // ),
     route("my-tasks", "routes/dashboard/my-tasks.tsx"),
     route("members", "routes/dashboard/members.tsx"),
     route("events", "routes/dashboard/events.tsx"),
-    //route("events/:eventId", "routes/dashboard/events/event-details.tsx"),
   ]),
+
   route(
     "workspace-invite/:workspaceId",
     "routes/dashboard/workspaces/workspace-invite.tsx"
