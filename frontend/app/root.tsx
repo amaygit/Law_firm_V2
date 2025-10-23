@@ -5,11 +5,36 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
+  useNavigationType,
+  createRoutesFromChildren,
+  matchRoutes,
 } from "react-router";
-// import { Meta } from "@remix-run/react";
 import type { Route } from "./+types/root";
 import "./app.css";
+import React from "react";
 import ReactQueryProvider from "./provider/react-query-provider";
+
+// 🟣 1️⃣ Import Sentry and its React Router v7 integration
+import * as Sentry from "@sentry/react";
+import { reactRouterV7BrowserTracingIntegration } from "@sentry/react";
+
+// 🟣 2️⃣ Initialize Sentry globally (runs once on client)
+Sentry.init({
+  dsn: "https://47a1555a236b3933334e485cc2b1f57b@o4507227586166784.ingest.de.sentry.io/4510240077447248",
+  integrations: [
+    reactRouterV7BrowserTracingIntegration({
+      useEffect: React.useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
+    }),
+  ],
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+  environment: import.meta.env.MODE,
+});
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,6 +49,7 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+// 🟣 3️⃣ Keep your layout as-is
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -42,15 +68,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+// 🟣 4️⃣ Your main app logic (unchanged)
 export default function App() {
   return (
     <ReactQueryProvider>
       <Outlet />
     </ReactQueryProvider>
-  )
+  );
 }
 
+// 🟣 5️⃣ Wrap your error boundary in Sentry.ErrorBoundary
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return (
+    <Sentry.ErrorBoundary
+      fallback={
+        <main className="pt-16 p-4 container mx-auto">
+          <h1>Oops!</h1>
+          <p>Something went wrong.</p>
+        </main>
+      }
+    >
+      <ErrorView error={error} />
+    </Sentry.ErrorBoundary>
+  );
+}
+
+// 🟣 6️⃣ Extracted view logic (same as before)
+function ErrorView({ error }: { error: unknown }) {
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
