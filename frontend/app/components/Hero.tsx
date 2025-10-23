@@ -111,7 +111,7 @@ const Hero = () => {
               <DialogContent className="p-0 overflow-hidden max-w-[640px] xl:max-w-[1000px]">
                 <AspectRatio ratio={16 / 9}>
                   <ReactPlayer
-                    src="https://www.youtube.com/watch?v=hlRTxA10eRA"
+                    src="https://www.youtube.com/"
                     width="100%"
                     height="100%"
                     style={{ borderRadius: "12px" }}
