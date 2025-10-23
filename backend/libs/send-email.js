@@ -8,7 +8,7 @@ export const sendEmail = async (to, subject, html) => {
    
         const msg = {
             to,
-            from: `SAAJNA <${fromEmail}>`, // Use the FROM_EMAIL from .env
+            from: `CustomLawFirm <${fromEmail}>`, // Use the FROM_EMAIL from .env
             subject,
             html,
         };

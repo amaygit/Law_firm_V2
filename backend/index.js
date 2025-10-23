@@ -26,7 +26,7 @@ const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.status(200).json({
-    message: "Welcome to SAAJNA API",
+    message: "Welcome to CustomLawFirm API",
   });
 });
 //http:localhost:5000/api-v1/auth/login

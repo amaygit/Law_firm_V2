@@ -66,7 +66,7 @@ const Navigate=useNavigate()
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input type='text' placeholder='Amay Deepak Nayak' {...field} />
+                      <Input type='text' placeholder='CustomLawFirm' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -79,7 +79,7 @@ const Navigate=useNavigate()
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input type='email' placeholder='amay@gmail.com' {...field} />
+                      <Input type='email' placeholder='CustomLawFirms@gmail.co' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

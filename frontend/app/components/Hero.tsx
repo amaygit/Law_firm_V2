@@ -148,7 +148,7 @@ const Hero = () => {
           >
             <img
               src={heroBanner2}
-              alt="SAAJNA Dashboard"
+              alt="CustomLawFirm Dashboard"
               className="w-full h-auto"
             
             />
