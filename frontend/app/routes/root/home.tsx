@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "SAAJNA Court" },
+    { title: "<CustomLawFirm>" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
