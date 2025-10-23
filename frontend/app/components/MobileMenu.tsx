@@ -1,7 +1,7 @@
 import type { MenuItem } from "@/types";
 import React from "react";
 import { Button } from "./ui/button";
-import { Link } from "react-router";
+import { Link } from "react-router"; // ✅ FIXED: correct import
 import {
   Collapsible,
   CollapsibleContent,
@@ -30,10 +30,14 @@ const MobileMenu = ({ navMenu }: MobileMenuProps) => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="ps-2">
                   <ul className="border-l border-l-muted-foreground/20">
-                    {submenu.map(({ href, label }, index) => (
-                      <li key={index}>
-                        <Button asChild variant="ghost" className="w-full justify-start text-muted-foreground hover:bg-transparent">
-                          <a href={href}>{label}</a>
+                    {submenu.map(({ href, label }, subIndex) => (
+                      <li key={subIndex}>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          className="w-full justify-start text-muted-foreground hover:bg-transparent"
+                        >
+                          <Link to={href}>{label}</Link>
                         </Button>
                       </li>
                     ))}
@@ -42,31 +46,28 @@ const MobileMenu = ({ navMenu }: MobileMenuProps) => {
               </Collapsible>
             ) : (
               <Button asChild variant="ghost" className="w-full justify-start">
-                <a href={href}>{label}</a>
+                <Link to={href}>{label}</Link>
               </Button>
             )}
           </li>
         ))}
       </ul>
-      <Separator className="bg-muted-foreground/20"/>
+
+      <Separator className="bg-muted-foreground/20" />
+
       <div className="flex gap-3 mt-4">
-         <Link to="/sign-in">
-  <Button
-    variant="ghost"
-    className="flex-1"
-  >
-    
-    Sign In
-  </Button>
-  </Link>
-  <Link to="/sign-up">
-    <Button
-    className="flex-1 bg-purple-700 hover:bg-purple-600 focus:bg-purple-600 text-white font-semibold"
-  >
-    Free Trial
-  </Button>
-  </Link>
-</div>
+        {/* ✅ Use `asChild` to make `Link` the clickable element */}
+        <Button asChild variant="ghost" className="flex-1">
+          <Link to="/sign-in">Sign In</Link>
+        </Button>
+
+        <Button
+          asChild
+          className="flex-1 bg-purple-700 hover:bg-purple-600 focus:bg-purple-600 text-white font-semibold"
+        >
+          <Link to="/sign-up">Free Trial</Link>
+        </Button>
+      </div>
     </div>
   );
 };
