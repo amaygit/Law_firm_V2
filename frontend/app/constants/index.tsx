@@ -439,7 +439,7 @@ export const footerData = {
       ],
     },
   ],
-  copyright: '© 2025 bycraftlabs',
+  copyright: '© 2025 CustomLawFirm',
   socialLinks: [
 
     // {
