@@ -168,7 +168,7 @@ export const navMenu: MenuItem[] = [
 
 // Hero
 export const heroData = {
-  sectionSubtitle: 'All-in-one law firm toolkit',
+  sectionSubtitle: 'Customize your All-In-One law firm toolkit',
   sectionTitle: 'Manage cases with next gen',
   decoTitle: 'AI assistance',
   sectionText:
@@ -255,7 +255,7 @@ export const overviewData = {
   listTitle: 'Trusted by thousands of legal professionals worldwide',
   list: [
     {
-      title: '10,000+',
+      title: '1,000+',
       text: 'Cases Managed',
     },
     {
