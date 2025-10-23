@@ -447,15 +447,15 @@ export const footerData = {
     //   icon: <Github size={18} />,
     // },
     {
-      href: 'https://www.linkedin.com/in/nitishbhai',
+      href: 'https://www.linkedin.com/company/byte-craft-lab/',
       icon: <Linkedin size={18} />,
     },
     {
-      href: 'https://www.instagram.com/amaynayak08',
+      href: 'https://www.instagram.com/',
       icon: <Instagram size={18} />,
     },
     {
-      href: 'https://www.youtube.com/saajna',
+      href: 'https://www.youtube.com/',
       icon: <Youtube size={18} />,
     },
   ],
