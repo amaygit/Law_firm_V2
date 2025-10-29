@@ -20,15 +20,18 @@ export const createEvent = async (req, res) => {
       });
     }
 
-    // Create event
+    // Create event - the minute-checker will handle automatic sending
     const newEvent = await Event.create({
       title,
       description,
       dateTime: eventDate,
       createdBy: userId,
+      status: "scheduled",
+      notificationSent: false,
     });
 
-    // Schedule email reminder
+    // Keep backward compatibility - still call scheduleEmailReminder
+    // but it won't create individual cron jobs anymore
     try {
       const jobId = await scheduleEmailReminder(newEvent, userEmail);
       newEvent.reminderJobId = jobId;
@@ -39,7 +42,8 @@ export const createEvent = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Event created successfully with email reminder",
+      message:
+        "Event created successfully. Email will be sent automatically at the scheduled time.",
       event: newEvent,
     });
   } catch (error) {
@@ -75,7 +79,7 @@ export const updateEvent = async (req, res) => {
       });
     }
 
-    // Cancel existing scheduled email
+    // Cancel existing scheduled email (backward compatibility)
     if (event.reminderJobId) {
       cancelScheduledEmail(event.reminderJobId);
     }
@@ -93,11 +97,15 @@ export const updateEvent = async (req, res) => {
         });
       }
       event.dateTime = newEventDate;
+
+      // Reset notification status if date changed
+      event.notificationSent = false;
+      event.status = "scheduled";
     }
 
     await event.save();
 
-    // Reschedule email
+    // Reschedule email (backward compatibility)
     try {
       const jobId = await scheduleEmailReminder(event, userEmail);
       event.reminderJobId = jobId;
@@ -142,7 +150,7 @@ export const deleteEvent = async (req, res) => {
       });
     }
 
-    // Cancel scheduled email
+    // Cancel scheduled email (backward compatibility)
     if (event.reminderJobId) {
       cancelScheduledEmail(event.reminderJobId);
     }
