@@ -2,18 +2,11 @@ import { Resend } from "resend";
 import cron from "node-cron";
 import Event from "../models/event.js";
 
-// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Store scheduled jobs in memory
 const scheduledJobs = new Map();
 
 /**
  * Send Email via Resend
- * @param {string} to - Recipient email address
- * @param {string} subject - Email subject
- * @param {string} html - HTML email content
- * @returns {Promise<Object>} - Result object
  */
 export const sendEmailViaResend = async (to, subject, html) => {
   try {
@@ -61,8 +54,6 @@ export const sendEmailViaResend = async (to, subject, html) => {
 
 /**
  * Generate HTML email template
- * @param {Object} event - Event object
- * @returns {string} - HTML email content
  */
 const generateEmailTemplate = (event) => {
   const eventDateFormatted = new Date(event.dateTime).toLocaleDateString(
@@ -97,8 +88,6 @@ const generateEmailTemplate = (event) => {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
@@ -106,14 +95,11 @@ const generateEmailTemplate = (event) => {
               </h1>
             </td>
           </tr>
-
-          <!-- Content -->
           <tr>
             <td style="padding: 40px 30px;">
               <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
                 ${event.title}
               </h2>
-              
               ${
                 event.description
                   ? `<p style="color: #666666; line-height: 1.6; margin: 0 0 30px 0; font-size: 16px;">
@@ -121,62 +107,35 @@ const generateEmailTemplate = (event) => {
               </p>`
                   : ""
               }
-
-              <!-- Event Details Box -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 30px 0;">
                 <tr>
                   <td style="padding: 25px;">
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding: 10px 0;">
-                          <table cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td style="padding-right: 15px;">
-                                <div style="background-color: #667eea; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                  <span style="font-size: 20px;">📅</span>
-                                </div>
-                              </td>
-                              <td>
-                                <p style="margin: 0; color: #666666; font-size: 14px;">Date</p>
-                                <p style="margin: 5px 0 0 0; color: #333333; font-size: 16px; font-weight: 600;">
-                                  ${eventDateFormatted}
-                                </p>
-                              </td>
-                            </tr>
-                          </table>
+                          <p style="margin: 0; color: #666666; font-size: 14px;">Date</p>
+                          <p style="margin: 5px 0 0 0; color: #333333; font-size: 16px; font-weight: 600;">
+                            ${eventDateFormatted}
+                          </p>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 10px 0;">
-                          <table cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td style="padding-right: 15px;">
-                                <div style="background-color: #764ba2; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                  <span style="font-size: 20px;">⏰</span>
-                                </div>
-                              </td>
-                              <td>
-                                <p style="margin: 0; color: #666666; font-size: 14px;">Time</p>
-                                <p style="margin: 5px 0 0 0; color: #333333; font-size: 16px; font-weight: 600;">
-                                  ${eventTimeFormatted}
-                                </p>
-                              </td>
-                            </tr>
-                          </table>
+                          <p style="margin: 0; color: #666666; font-size: 14px;">Time</p>
+                          <p style="margin: 5px 0 0 0; color: #333333; font-size: 16px; font-weight: 600;">
+                            ${eventTimeFormatted}
+                          </p>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-
               <p style="color: #666666; line-height: 1.6; margin: 30px 0 0 0; font-size: 14px; text-align: center;">
                 This is an automated reminder for your scheduled event.
               </p>
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
             <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
               <p style="margin: 0 0 10px 0; color: #333333; font-size: 16px; font-weight: 600;">
@@ -197,112 +156,98 @@ const generateEmailTemplate = (event) => {
 };
 
 /**
- * Schedule Email reminder for an event
- * @param {Object} event - Event object from database
- * @param {string} userEmail - User's email address
- * @returns {Promise<string>} - Job ID
+ * IMPROVED: Check events every minute instead of using exact cron times
  */
-export const scheduleEmailReminder = async (event, userEmail) => {
-  const jobId = `event_${event._id}_${Date.now()}`;
+export const startEmailChecker = () => {
+  console.log("🚀 Starting email checker (runs every minute)");
 
-  // Calculate when to send
-  const eventDate = new Date(event.dateTime);
-  const now = new Date();
-
-  // If event is in the past, don't schedule
-  if (eventDate <= now) {
-    console.log("⚠️ Event is in the past, not scheduling");
-    return null;
-  }
-
-  console.log(
-    `⏰ Scheduling email reminder for ${event.title} at ${eventDate}`
-  );
-  console.log(`📧 Recipient: ${userEmail}`);
-
-  // Create cron expression for exact time
-  const minutes = eventDate.getMinutes();
-  const hours = eventDate.getHours();
-  const day = eventDate.getDate();
-  const month = eventDate.getMonth() + 1;
-  const cronExpression = `${minutes} ${hours} ${day} ${month} *`;
-
-  console.log(`📅 Cron expression: ${cronExpression}`);
-
-  // Schedule the job
-  const job = cron.schedule(
-    cronExpression,
+  // Run every minute
+  cron.schedule(
+    "* * * * *",
     async () => {
-      console.log(`🔔 Sending email reminder for event: ${event.title}`);
-
       try {
-        const subject = `🔔 Reminder: ${event.title}`;
-        const html = generateEmailTemplate(event);
+        const now = new Date();
+        const oneMinuteAgo = new Date(now.getTime() - 60000);
 
-        // Send email
-        const result = await sendEmailViaResend(userEmail, subject, html);
+        // Find events that should have been triggered in the last minute
+        const dueEvents = await Event.find({
+          status: "scheduled",
+          dateTime: {
+            $gte: oneMinuteAgo,
+            $lte: now,
+          },
+          notificationSent: false,
+        }).populate("createdBy", "email");
 
-        console.log(`📊 Email Result:`, result);
+        if (dueEvents.length > 0) {
+          console.log(`📬 Found ${dueEvents.length} events to process`);
+        }
 
-        if (result.success) {
-          // Update event status in database
-          await Event.findByIdAndUpdate(event._id, {
-            notificationSent: true,
-            status: "completed",
-          });
-          console.log(`✅ Event status updated to completed`);
-        } else {
-          console.error("❌ Email send failed");
-          await Event.findByIdAndUpdate(event._id, {
-            status: "cancelled",
-          });
+        for (const event of dueEvents) {
+          try {
+            console.log(`🔔 Processing event: ${event.title}`);
+
+            const subject = `🔔 Reminder: ${event.title}`;
+            const html = generateEmailTemplate(event);
+            const userEmail = event.createdBy.email;
+
+            const result = await sendEmailViaResend(userEmail, subject, html);
+
+            if (result.success) {
+              await Event.findByIdAndUpdate(event._id, {
+                notificationSent: true,
+                status: "completed",
+              });
+              console.log(
+                `✅ Email sent and event marked as completed: ${event.title}`
+              );
+            } else {
+              console.error(
+                `❌ Failed to send email for: ${event.title}`,
+                result.error
+              );
+              await Event.findByIdAndUpdate(event._id, {
+                status: "cancelled",
+              });
+            }
+          } catch (error) {
+            console.error(`❌ Error processing event ${event.title}:`, error);
+          }
         }
       } catch (error) {
-        console.error("❌ Error in scheduled job:", error);
-        await Event.findByIdAndUpdate(event._id, {
-          status: "cancelled",
-        });
+        console.error("❌ Error in email checker:", error);
       }
-
-      // Remove job from memory
-      scheduledJobs.delete(jobId);
     },
     {
-      scheduled: false,
       timezone: "Asia/Kolkata",
     }
   );
+};
 
-  // Start the job
-  job.start();
-
-  // Store job reference
-  scheduledJobs.set(jobId, job);
-
-  console.log(`✅ Scheduled email reminder for ${event.title}`);
+/**
+ * DEPRECATED: Use startEmailChecker instead
+ * Keep this for backwards compatibility but it won't be used
+ */
+export const scheduleEmailReminder = async (event, userEmail) => {
+  const jobId = `event_${event._id}_${Date.now()}`;
+  console.log(
+    `⚠️ scheduleEmailReminder called but using minute-checker instead`
+  );
   return jobId;
 };
 
 /**
- * Cancel scheduled email
- * @param {string} jobId - Job ID to cancel
- * @returns {boolean} - Success status
+ * Cancel scheduled email (not needed with new approach but kept for API compatibility)
  */
 export const cancelScheduledEmail = (jobId) => {
-  const job = scheduledJobs.get(jobId);
-  if (job) {
-    job.destroy();
-    scheduledJobs.delete(jobId);
-    console.log(`🗑️ Cancelled scheduled email job: ${jobId}`);
-    return true;
-  }
-  return false;
+  console.log(
+    `🗑️ Cancel requested for: ${jobId} (using database status instead)`
+  );
+  return true;
 };
 
 /**
  * Send immediate test email
- * @param {string} userEmail - User's email address
- * @returns {Promise<Object>} - Result
  */
 export const sendTestEmail = async (userEmail) => {
   const subject = "🧪 Test Email from SAAJNA Legal";
@@ -344,38 +289,10 @@ export const sendTestEmail = async (userEmail) => {
 };
 
 /**
- * Re-schedule existing events on server restart
+ * NOT NEEDED with new approach - events are checked every minute
  */
 export const rescheduleExistingEvents = async () => {
-  try {
-    console.log("🔄 Rescheduling existing events...");
-
-    const now = new Date();
-
-    // Find all scheduled events in the future
-    const upcomingEvents = await Event.find({
-      status: "scheduled",
-      dateTime: { $gt: now },
-    }).populate("createdBy", "email");
-
-    console.log(`Found ${upcomingEvents.length} upcoming events to reschedule`);
-
-    for (const event of upcomingEvents) {
-      try {
-        const userEmail = event.createdBy.email;
-        const jobId = await scheduleEmailReminder(event, userEmail);
-        if (jobId) {
-          event.reminderJobId = jobId;
-          await event.save();
-          console.log(`✅ Rescheduled: ${event.title}`);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to reschedule ${event.title}:`, error.message);
-      }
-    }
-
-    console.log("✅ Event rescheduling complete");
-  } catch (error) {
-    console.error("❌ Error rescheduling events:", error);
-  }
+  console.log(
+    " rescheduleExistingEvents called but not needed with minute-checker"
+  );
 };
