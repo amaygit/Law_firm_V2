@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import routes from "./routes/index.js";
+import { startEmailChecker } from "./libs/email-scheduler.js";
 //import { initializeWhatsApp } from "./libs/whatsapp-scheduler.js";
 dotenv.config();
 const app = express();
@@ -19,7 +20,12 @@ app.use(morgan("dev"));
 //db connection
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => console.log("Database connected successfully"))
+  .then(() => {
+    console.log("Database connected successfully");
+    startEmailChecker();
+    console.log("✅ Email checker started");
+  })
+
   .catch((err) => console.log("Database connection failed", err));
 app.use(express.json());
 const PORT = process.env.PORT || 5000;
