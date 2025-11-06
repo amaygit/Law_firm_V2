@@ -7,11 +7,9 @@ import {
 
 export default [
   // Public landing page layout with home
-layout("routes/root/public-layout.tsx", [
-  index("routes/root/home.tsx"),
-]),
-
-
+  layout("routes/root/public-layout.tsx", [
+    index("routes/root/home.tsx"),
+  ]),
 
   layout("routes/auth/auth-layout.tsx", [
     route("sign-in", "routes/auth/sign-in.tsx"),
@@ -20,6 +18,7 @@ layout("routes/root/public-layout.tsx", [
     route("reset-password", "routes/auth/reset-password.tsx"),
     route("verify-email", "routes/auth/verify-email.tsx"),
   ]),
+    route("auth/google/callback", "routes/auth/google/callback.tsx"),
 
   layout("routes/dashboard/dashboard-layout.tsx", [
     route("dashboard", "routes/dashboard/index.tsx"),
@@ -46,6 +45,7 @@ layout("routes/root/public-layout.tsx", [
     route("my-tasks", "routes/dashboard/my-tasks.tsx"),
     route("members", "routes/dashboard/members.tsx"),
     route("events", "routes/dashboard/events.tsx"),
+    route("meetings", "routes/dashboard/meetings.tsx"), // NEW ROUTE
   ]),
 
   route(

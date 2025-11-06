@@ -129,7 +129,7 @@
 //   );
 // };
 import { cn } from "@/lib/utils";
-import { Calendar } from "lucide-react";
+import { Calendar, Video } from "lucide-react";
 import { useAuth } from "@/provider/auth-context";
 import type { Workspace } from "@/types";
 import {
@@ -184,6 +184,11 @@ export const SideBarComponent = ({
       href: "/members",
       icon: Users,
     },
+      {
+    title: "Meetings",
+    href: "/meetings",
+    icon: Video, // Add Video import from lucide-react
+  },
     {
       title: "Events",
       href: "/events",
