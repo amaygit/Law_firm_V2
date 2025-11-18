@@ -572,7 +572,7 @@ export const CreateTaskDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Case</DialogTitle>
+          <DialogTitle>Create Task</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -783,7 +783,7 @@ export const CreateTaskDialog = ({
 
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "Creating..." : "Create Case"}
+                {isPending ? "Creating..." : "Create Task"}
               </Button>
             </DialogFooter>
           </form>
