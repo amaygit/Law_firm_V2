@@ -1,23 +1,28 @@
-import sgMail from "@sendgrid/mail";
-import dotenv from "dotenv";
-dotenv.config();
+import nodemailer from 'nodemailer';
 
-sgMail.setApiKey(process.env.SEND_GRID_API); 
-const fromEmail = process.env.FROM_EMAIL 
-export const sendEmail = async (to, subject, html) => {
-   
-        const msg = {
-            to,
-            from: `CustomLawFirm <${fromEmail}>`, // Use the FROM_EMAIL from .env
-            subject,
-            html,
-        };
-        try {
-            await sgMail.send(msg);
-            console.log("Email sent successfully");
-            return true;
-        } catch (error) {
-            console.error("Error sending email:", error);
-            return false;
-        }
+export async function sendEmail(to, subject, message) {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to,
+    subject,
+    html: message, // Pass HTML body directly
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Brevo SMTP Error:', error);
+    return false;
+  }
 }

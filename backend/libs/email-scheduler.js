@@ -1,56 +1,17 @@
-import { Resend } from "resend";
 import cron from "node-cron";
 import Event from "../models/event.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const scheduledJobs = new Map();
-
 /**
- * Send Email via Resend
+ * Send Email via Resend (TEMP - replaced with no-op to prevent crashes)
  */
 export const sendEmailViaResend = async (to, subject, html) => {
-  try {
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error("Resend API key not configured");
-    }
-
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-
-    console.log(`📧 Sending email via Resend to ${to}`);
-    console.log(`📤 From: ${fromEmail}`);
-    console.log(`📝 Subject: ${subject}`);
-
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
-      to: to,
-      subject: subject,
-      html: html,
-    });
-
-    if (error) {
-      console.error("❌ Resend returned an error:", error);
-      return {
-        success: false,
-        error: error.message || "Unknown error",
-      };
-    }
-
-    console.log("✅ Email sent successfully");
-    console.log("📥 Resend Response:", data);
-
-    return {
-      success: true,
-      messageId: data.id,
-      response: data,
-    };
-  } catch (error) {
-    console.error("❌ Failed to send email:", error.message);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
+  console.warn("🚧 sendEmailViaResend is disabled. Skipping send.");
+  return {
+    success: false,
+    error: "Resend is disabled in this environment"
+  };
 };
+
 
 /**
  * Generate HTML email template
@@ -154,6 +115,7 @@ const generateEmailTemplate = (event) => {
 </html>
   `;
 };
+
 
 /**
  * IMPROVED: Check events every minute instead of using exact cron times

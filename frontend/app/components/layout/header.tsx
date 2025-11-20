@@ -161,7 +161,10 @@ export const Header = ({
 }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { workspaces } = useLoaderData() as { workspaces: Workspace[] };
+  // const { workspaces } = useLoaderData() as { workspaces: Workspace[] };
+  const data = useLoaderData() as { workspaces?: Workspace[] } || {};
+const workspaces = data.workspaces || [];
+
   const location = useLocation();
   const isOnWorkspacePage = location.pathname.includes("/workspace");
 

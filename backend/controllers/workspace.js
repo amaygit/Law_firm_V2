@@ -329,17 +329,14 @@ const getWorkspaceStats = async (req, res) => {
 const inviteUserToWorkspace = async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const { email } = req.body; // ❌ removed role, we don’t need it anymore
+    const { email } = req.body;
 
     const workspace = await Workspace.findById(workspaceId);
-
     if (!workspace) {
-      return res.status(404).json({
-        message: "Workspace not found",
-      });
+      return res.status(404).json({ message: "Workspace not found" });
     }
 
-    // ✅ Only owner can invite
+    // Only owner can invite
     if (workspace.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         message: "You are not authorized to invite members to this workspace",
@@ -347,17 +344,13 @@ const inviteUserToWorkspace = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-
     if (!existingUser) {
-      return res.status(400).json({
-        message: "User not found",
-      });
+      return res.status(400).json({ message: "User not found" });
     }
 
     const isMember = workspace.members.some(
       (member) => member.user.toString() === existingUser._id.toString()
     );
-
     if (isMember) {
       return res.status(400).json({
         message: "User already a member of this workspace",
@@ -374,12 +367,10 @@ const inviteUserToWorkspace = async (req, res) => {
         message: "User already invited to this workspace",
       });
     }
-
     if (isInvited && isInvited.expiresAt < new Date()) {
       await WorkspaceInvite.deleteOne({ _id: isInvited._id });
     }
 
-    // ✅ Force role to "member"
     const inviteToken = jwt.sign(
       {
         user: existingUser._id,
@@ -394,22 +385,61 @@ const inviteUserToWorkspace = async (req, res) => {
       user: existingUser._id,
       workspaceId: workspaceId,
       token: inviteToken,
-      role: "member", // ✅ always member
+      role: "member",
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     const invitationLink = `${process.env.FRONTEND_URL}/workspace-invite/${workspace._id}?tk=${inviteToken}`;
 
-    const emailContent = `
-      <p>You have been invited to join ${workspace.name} workspace</p>
-      <p>Click here to join: <a href="${invitationLink}">${invitationLink}</a></p>
-    `;
+    // ---------- Beautiful HTML Invite Template --------------
+    const workspaceLogo = "⚖️🔨"; // hammer and scales emoji
+    const workspaceName = workspace.name;
+    const workspaceDesc = workspace.description || "Collaborate and manage cases securely";
 
-    await sendEmail(
+    const inviteEmailContent = `
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:13px;max-width:500px;margin:42px auto;padding:34px 30px 36px 30px;box-shadow:0 5px 32px #1e293b10;font-family:'Segoe UI',Arial,sans-serif">
+        <div style="text-align:center;margin-bottom:18px;">
+          <span style="font-size:3rem;line-height:1;">${workspaceLogo}</span>
+        </div>
+        <h2 style="color:#2155cd;font-size:1.32rem;font-weight:900;letter-spacing:.7px;margin-bottom:10px;text-align:center;">
+          Join the Workspace: <span style="color:#0a1931">${workspaceName}</span>
+        </h2>
+        <p style="font-size:15.5px;color:#333;margin-bottom:16px;text-align:center;">
+          <em>${workspaceDesc}</em>
+        </p>
+        <div style="background:#f0f6fe;padding:20px 22px;border-radius:9px;margin-bottom:19px;">
+          <p style="font-size:15px;color:#222;margin:0 0 12px 0;text-align:center;">
+            You have been <strong style="color:#2155cd;">invited</strong> to join the workspace
+            <strong>${workspaceName}</strong> on <span style="color:#2563eb;font-weight:600;">SAAJNA</span>.
+          </p>
+          <a href="${invitationLink}"
+            style="display:block;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;font-size:17px;
+              margin:15px auto 5px auto;border-radius:8px;padding:15px 0;width:88%;text-align:center;box-shadow:0 2px 10px #2563eb25;">
+            Accept Invitation &amp; Join
+          </a>
+          <p style="color:#888;font-size:12.7px;margin:18px 0 0 0;text-align:center">
+            This link is valid for 7 days.<br>
+            If you don't recognize this, you can ignore this email.
+          </p>
+        </div>
+        <div style="color:#8c98a6;text-align:center;font-size:13.4px;margin-top:28px;">
+          SAAJNA — Legal Workspace Platform
+        </div>
+      </div>
+    `;
+    // --------------------------------------------------------
+
+    const subject = `You're invited to join ${workspaceName} on SAAJNA`;
+
+    const isSent = await sendEmail(
       email,
-      "You have been invited to join a workspace",
-      emailContent
+      subject,
+      inviteEmailContent
     );
+
+    if (!isSent) {
+      return res.status(500).json({ message: "Failed to send invite email. Please try again later." });
+    }
 
     res.status(200).json({
       message: "Invitation sent successfully",
@@ -421,6 +451,7 @@ const inviteUserToWorkspace = async (req, res) => {
     });
   }
 };
+
 
 const acceptGenerateInvite = async (req, res) => {
   try {
