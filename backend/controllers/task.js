@@ -283,8 +283,8 @@ const updateTaskTitle = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -332,8 +332,8 @@ const updateTaskDescription = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -380,8 +380,8 @@ const updateTaskStatus = async (req, res) => {
       return res.status(404).json({ message: "Case not found" });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
     if (!isMember) {
       return res.status(403).json({
@@ -433,8 +433,8 @@ const updateTaskAssignees = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -505,8 +505,8 @@ const updateTaskPriority = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -555,8 +555,8 @@ const addSubTask = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -683,15 +683,15 @@ const addComment = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
-    );
+    // const isMember = project.assignees.some(
+    //   (assignee) => assignee.toString() === req.user._id.toString()
+    // );
 
-    if (!isMember) {
-      return res.status(403).json({
-        message: "You are not a member of this case",
-      });
-    }
+    // if (!isMember) {
+    //   return res.status(403).json({
+    //     message: "You are not a member of this case",
+    //   });
+    // }
 
     const newComment = await Comment.create({
       text,
@@ -738,8 +738,8 @@ const watchTask = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -796,8 +796,8 @@ const achievedTask = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
@@ -935,8 +935,8 @@ export const addInternalComment = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+    const isMember = project.assignees.some(
+      (assignee) => assignee.toString() === req.user._id.toString()
     );
 
     if (!isMember) {
