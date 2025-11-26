@@ -1,13 +1,20 @@
-import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+// frontend/app/components/task/file-upload-button.tsx - Updated for Google Drive
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  useRecordFileUpload,
-  useStorageLimitChecker,
-} from "@/hooks/use-storage";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Upload, Cloud, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
-import { Upload } from "lucide-react";
+import {
+  useUploadToGoogleDrive,
+  useGoogleDriveStatus,
+  useGetGoogleAuthUrl,
+} from "@/hooks/use-google-drive";
 
 interface FileUploadButtonProps {
   taskId: string;
@@ -20,96 +27,63 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   onUploadSuccess,
   disabled,
 }) => {
-  const [uploading, setUploading] = useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [showConnectDialog, setShowConnectDialog] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const { mutate: recordUpload } = useRecordFileUpload();
-  const { checkStorageBeforeUpload } = useStorageLimitChecker();
-  const queryClient = useQueryClient();
+  const { data: driveStatus } = useGoogleDriveStatus();
+  const { mutate: uploadFile, isPending: uploading } = useUploadToGoogleDrive();
+  const { mutate: getAuthUrl, isPending: gettingUrl } = useGetGoogleAuthUrl();
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  const isConnected = driveStatus?.connected;
+
+  const handleClick = () => {
+    if (!isConnected) {
+      setShowConnectDialog(true);
+      return;
+    }
+    inputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-
-    try {
-      // ✅ Step 1: Check storage limit BEFORE upload
-      console.log(
-        `Checking storage for file: ${file.name} (${(
-          file.size /
-          1024 /
-          1024
-        ).toFixed(2)} MB)`
-      );
-
-      const storageCheck = await checkStorageBeforeUpload(file.size, taskId);
-
-      if (!storageCheck.allowed) {
-        toast.error(
-          `Storage limit exceeded! Available: ${storageCheck.availableMB?.toFixed(
-            1
-          )} MB, ` + `Requested: ${storageCheck.requestedMB?.toFixed(1)} MB`
-        );
-        setUploading(false);
-        if (inputRef.current) inputRef.current.value = "";
-        return;
-      }
-
-      console.log("✅ Storage check passed, proceeding with upload");
-
-      // Step 2: Get S3 upload URL
-      const response = await axios.post(
-        "https://6g14bisq5c.execute-api.eu-north-1.amazonaws.com/upload",
-        {
-          taskId,
-          fileName: file.name,
-          fileType: file.type,
-        }
-      );
-
-      const { uploadURL } = response.data;
-
-      // Step 3: Upload to S3
-      await axios.put(uploadURL, file, {
-        headers: { "Content-Type": file.type },
-      });
-
-      // Step 4: Record in database with workspace owner tracking
-      recordUpload({
-        taskId,
-        fileName: file.name,
-        fileUrl: uploadURL.split("?")[0],
-        fileType: file.type,
-        fileSize: file.size,
-      });
-
-      toast.success("File uploaded successfully!");
-      onUploadSuccess();
-
-      // Force refresh storage usage
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["storage-usage"] });
-      }, 1000);
-    } catch (err: any) {
-      console.error("Upload error:", err);
-
-      if (err.response?.status === 413) {
-        const errorData = err.response.data;
-        toast.error(
-          `Storage limit exceeded! Available: ${errorData.availableMB?.toFixed(
-            1
-          )} MB, ` + `Requested: ${errorData.requestedMB?.toFixed(1)} MB`
-        );
-      } else {
-        toast.error("File upload failed. Please try again.");
-      }
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+    // Check file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 50MB.");
+      return;
     }
+
+    uploadFile(
+      { taskId, file },
+      {
+        onSuccess: () => {
+          toast.success("File uploaded to Google Drive!");
+          onUploadSuccess();
+        },
+        onError: (error: any) => {
+          if (error.requiresGoogleAuth) {
+            setShowConnectDialog(true);
+          } else {
+            toast.error(error.message || "Failed to upload file");
+          }
+        },
+      }
+    );
+
+    // Reset input
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleConnectDrive = () => {
+    getAuthUrl(undefined, {
+      onSuccess: (data: any) => {
+        window.location.href = data.authUrl;
+      },
+      onError: () => {
+        toast.error("Failed to start Google authentication");
+      },
+    });
   };
 
   return (
@@ -119,19 +93,79 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         ref={inputRef}
         style={{ display: "none" }}
         onChange={handleFileChange}
-        accept="image/*,application/pdf,.doc,.docx,.txt"
+        accept="image/*,application/pdf,.doc,.docx,.txt,.xls,.xlsx"
         disabled={uploading || disabled}
       />
+
       <Button
         variant="outline"
         size="sm"
-        onClick={() => inputRef.current?.click()}
+        onClick={handleClick}
         disabled={uploading || disabled}
         className="w-fit"
       >
-        <Upload className="mr-2 h-4 w-4" />
-        {uploading ? "Uploading" : "Upload"}
+        {uploading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Uploading
+          </>
+        ) : (
+          <>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload
+          </>
+        )}
       </Button>
+
+      {/* Connect Google Drive Dialog */}
+      <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              Connect Google Drive
+            </DialogTitle>
+            <DialogDescription>
+              To upload files, you need to connect your Google Drive account
+              first.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg space-y-2">
+              <p className="text-sm font-medium">Why Google Drive?</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Your files are stored in YOUR Google Drive</li>
+                <li>• 15GB free storage</li>
+                <li>• You maintain full control of your data</li>
+                <li>• Access files from anywhere</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowConnectDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConnectDrive}
+                disabled={gettingUrl}
+                className="flex-1"
+              >
+                {gettingUrl ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Cloud className="mr-2 h-4 w-4" />
+                )}
+                Connect Drive
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

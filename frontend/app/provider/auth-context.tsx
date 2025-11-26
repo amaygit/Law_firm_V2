@@ -1,3 +1,4 @@
+// frontend/app/provider/auth-context.tsx
 import type { User } from "@/types";
 import { createContext, useContext, useEffect, useState } from "react";
 import { queryClient } from "./react-query-provider";

@@ -1,3 +1,4 @@
+// frontend/app/routes/auth/google/callback.tsx
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Loader } from "@/components/loader";

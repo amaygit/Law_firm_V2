@@ -146,6 +146,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Link, useLoaderData, useLocation, useNavigate } from "react-router";
 import { WorkspaceAvatar } from "../workspace/workspace-avatar";
 import { StorageIndicator } from "../storage-indicator";
+import { GoogleDriveConnect } from "@/components/google-drive-connect";
 import { toast } from "sonner";
 
 interface HeaderProps {
@@ -162,8 +163,8 @@ export const Header = ({
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   // const { workspaces } = useLoaderData() as { workspaces: Workspace[] };
-  const data = useLoaderData() as { workspaces?: Workspace[] } || {};
-const workspaces = data.workspaces || [];
+  const data = (useLoaderData() as { workspaces?: Workspace[] }) || {};
+  const workspaces = data.workspaces || [];
 
   const location = useLocation();
   const isOnWorkspacePage = location.pathname.includes("/workspace");
@@ -198,7 +199,6 @@ const workspaces = data.workspaces || [];
       console.error("Logout error:", error);
     }
   };
-
 
   // ✅ Handle Vakalatnama download
   const handleVakalatnamaDownload = (language: "english" | "hindi") => {
@@ -296,7 +296,7 @@ const workspaces = data.workspaces || [];
         {/* ✅ Right section */}
         <div className="flex items-center gap-2">
           {/* ✅ Desktop: show StorageIndicator & Vakalatnama inline */}
-          <StorageIndicator />
+          <GoogleDriveConnect />
           <div className="hidden sm:flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -376,7 +376,9 @@ const workspaces = data.workspaces || [];
                 <Link to="/user/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>Log Out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                Log Out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

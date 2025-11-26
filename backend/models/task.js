@@ -1,3 +1,86 @@
+// import mongoose, { Schema } from "mongoose";
+
+// const taskSchema = new Schema(
+//   {
+//     title: { type: String, required: true, trim: true },
+//     description: { type: String, trim: true },
+//     project: {
+//       type: Schema.Types.ObjectId,
+//       ref: "Project",
+//       required: true,
+//     },
+//     workspace: {
+//       type: Schema.Types.ObjectId,
+//       ref: "Workspace",
+//       required: true,
+//     },
+//     status: {
+//       type: String,
+//       enum: ["To Do", "In Progress", "Review", "Done"],
+//       default: "To Do",
+//     },
+//     priority: {
+//       type: String,
+//       enum: ["Low", "Medium", "High"],
+//       default: "Medium",
+//     },
+//     assignees: [{ type: Schema.Types.ObjectId, ref: "User" }],
+//     clients: [{ type: Schema.Types.ObjectId, ref: "User" }],
+//     watchers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+//     dueDate: { type: Date },
+//     courtName: { type: String, trim: true },
+//     hearings: [
+//       {
+//         date: { type: Date, required: true },
+//         description: { type: String, trim: true },
+//         inFavour: { type: Boolean, required: true }, // true = our favour
+//         createdAt: { type: Date, default: Date.now },
+//       },
+//     ],
+//     completedAt: { type: Date },
+//     estimatedHours: { type: Number, min: 0 },
+//     actualHours: { type: Number, min: 0 },
+//     tags: [{ type: String }],
+//     subtasks: [
+//       {
+//         title: {
+//           type: String,
+//           required: true,
+//         },
+//         completed: {
+//           type: Boolean,
+//           default: false,
+//         },
+//         createdAt: {
+//           type: Date,
+//           default: Date.now,
+//         },
+//       },
+//     ],
+//     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
+//     internalComments: [{ type: Schema.Types.ObjectId, ref: "InternalComment" }],
+
+//     attachments: [
+//       {
+//         fileName: { type: String, required: true },
+//         fileUrl: { type: String, required: true },
+//         fileType: { type: String },
+//         fileSize: { type: Number },
+//         uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+//         uploadedAt: { type: Date, default: Date.now },
+//         workspaceOwner: { type: Schema.Types.ObjectId, ref: "User" },
+//       },
+//     ],
+//     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+//     isArchived: { type: Boolean, default: false },
+//   },
+//   { timestamps: true }
+// );
+
+// const Task = mongoose.model("Task", taskSchema);
+
+// export default Task;
+// backend/models/task.js - UPDATED with encrypted Google Drive attachments
 import mongoose, { Schema } from "mongoose";
 
 const taskSchema = new Schema(
@@ -33,7 +116,7 @@ const taskSchema = new Schema(
       {
         date: { type: Date, required: true },
         description: { type: String, trim: true },
-        inFavour: { type: Boolean, required: true }, // true = our favour
+        inFavour: { type: Boolean, required: true },
         createdAt: { type: Date, default: Date.now },
       },
     ],
@@ -43,39 +126,39 @@ const taskSchema = new Schema(
     tags: [{ type: String }],
     subtasks: [
       {
-        title: {
-          type: String,
-          required: true,
-        },
-        completed: {
-          type: Boolean,
-          default: false,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
+        title: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
       },
     ],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
     internalComments: [{ type: Schema.Types.ObjectId, ref: "InternalComment" }],
 
+    // ✅ UPDATED: Google Drive attachments with encrypted fields
     attachments: [
       {
         fileName: { type: String, required: true },
         fileUrl: { type: String, required: true },
+        driveFileId: { type: String, required: true }, // ENCRYPTED Google Drive file ID
         fileType: { type: String },
         fileSize: { type: Number },
         uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        uploaderEmail: { type: String }, // Google account email of uploader
         uploadedAt: { type: Date, default: Date.now },
-        workspaceOwner: { type: Schema.Types.ObjectId, ref: "User" },
+        // Store which user's Drive contains this file (for deletion)
+        driveOwnerId: { type: Schema.Types.ObjectId, ref: "User" },
       },
     ],
+
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     isArchived: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+// ✅ Index for efficient queries
+taskSchema.index({ "attachments.driveOwnerId": 1 });
+taskSchema.index({ "attachments.uploadedBy": 1 });
 
 const Task = mongoose.model("Task", taskSchema);
 

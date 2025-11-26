@@ -11,6 +11,7 @@ import storageRoutes from "./storage.js";
 import eventRoutes from "./event.js";
 import aiChatRoutes from "./ai-chat.js";
 import causelistRoutes from "./causeList.js";
+import googleDriveRoutes from "./googleDrive.js";
 const router = express.Router();
 
 router.use(express.json());
@@ -25,4 +26,5 @@ router.use("/storage", storageRoutes);
 router.use("/events", eventRoutes);
 router.use("/ai", aiChatRoutes);
 router.use("/causelist", causelistRoutes);
+router.use("/google-drive", googleDriveRoutes);
 export default router;
